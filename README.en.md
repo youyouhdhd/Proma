@@ -6,7 +6,7 @@ It is not just another chat box. Proma is meant to become a long-lived Agent wor
 
 ![Proma Poster](https://img.erlich.fun/personal-blog/uPic/pb.png)
 
-[中文 README](./README.md) | [Beginner Tutorial](./tutorial/tutorial.md) | [Open-Source Release](https://github.com/proma-ai/Proma/releases) | [Commercial Version](https://proma.cool/download)
+[中文 README](./README.md) | [Beginner Tutorial](./tutorial/tutorial.md) | [Build Guide](./docs/build.md) | [Open-Source Release](https://github.com/proma-ai/Proma/releases) | [Commercial Version](https://proma.cool/download)
 
 ## What Proma Can Do
 
@@ -127,7 +127,7 @@ Proma's Agent mode is driven by a single **Pi Agent Runtime**, powered by `@eare
 | Layer | Technology |
 | --- | --- |
 | Runtime | Bun |
-| Desktop | Electron 39 |
+| Desktop | Electron 43 |
 | Frontend | React 18 + TypeScript |
 | State | Jotai |
 | Styling | Tailwind CSS + Radix UI |
@@ -136,7 +136,7 @@ Proma's Agent mode is driven by a single **Pi Agent Runtime**, powered by `@eare
 | Code highlighting | Shiki |
 | Build | Vite + esbuild |
 | Distribution | electron-builder |
-| Agent runtime | Pi: `@earendil-works/pi-* @0.82.1` |
+| Agent runtime | Pi: `@earendil-works/pi-* @0.84.2` |
 
 ## Architecture
 

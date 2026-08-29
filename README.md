@@ -10,7 +10,7 @@ Proma 是一个本地优先的 AI 桌面应用，把多模型 Chat、通用 Agen
   <source src="https://img.erlich.fun/personal-blog/uPic/%E7%AE%80%E5%8D%95%E4%BB%8B%E7%BB%8D%20Proma.mp4" type="video/mp4">
 </video>
 
-[English README](./README.en.md) | [新手教程](./tutorial/tutorial.md) | [下载开源版](https://github.com/proma-ai/Proma/releases) | [下载商业版](https://proma.cool/download)
+[English README](./README.en.md) | [新手教程](./tutorial/tutorial.md) | [开发者构建指南](./docs/build.md) | [下载开源版](https://github.com/proma-ai/Proma/releases) | [下载商业版](https://proma.cool/download)
 
 > **最新思考 ｜ 2026 Q2–Q3**：[勇敢地解决真实的问题 — Proactive · 个人注意力 · 团队协作](./proma-thinking/proma-2026-q2-q3-thinking.md) ｜ 往期思考：[2026 Q1](./proma-thinking/proma-2026-q1-thinking.md)
 
@@ -131,7 +131,7 @@ Proma 的 Agent 模式由 **Pi Agent Runtime** 单一驱动，内核来自 `@ear
 | 层级 | 技术 |
 | --- | --- |
 | 运行时 | Bun |
-| 桌面框架 | Electron 39 |
+| 桌面框架 | Electron 43 |
 | 前端 | React 18 + TypeScript |
 | 状态管理 | Jotai |
 | 样式 | Tailwind CSS + Radix UI |
@@ -140,7 +140,7 @@ Proma 的 Agent 模式由 **Pi Agent Runtime** 单一驱动，内核来自 `@ear
 | 代码高亮 | Shiki |
 | 构建 | Vite + esbuild |
 | 分发 | electron-builder |
-| Agent Runtime | Pi: `@earendil-works/pi-* @0.82.1` |
+| Agent Runtime | Pi: `@earendil-works/pi-* @0.84.2` |
 
 ## 架构概览
 

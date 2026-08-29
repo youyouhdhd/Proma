@@ -7,7 +7,13 @@ import { dirname, join } from 'node:path'
 
 const managerModulePath = join(import.meta.dir, 'planning-manager.ts')
 const repoRoot = dirname(dirname(dirname(dirname(dirname(import.meta.dir)))))
-const electronBinary = createRequire(import.meta.url)('electron') as string
+const electronModulePath = createRequire(import.meta.url).resolve('electron')
+const electronBinaryName = process.platform === 'win32'
+  ? 'electron.exe'
+  : process.platform === 'darwin'
+    ? 'Electron.app/Contents/MacOS/Electron'
+    : 'electron'
+const electronBinary = join(dirname(electronModulePath), 'dist', electronBinaryName)
 
 /**
  * planning-manager 的数据库连接是模块级单例，而 node:sqlite 仅由 Electron 的 Node 22 提供。
@@ -113,7 +119,13 @@ test('Given a fresh planning database When planning data changes Then isolation,
 
     const result = spawnSync(electronBinary, [outputPath], {
       cwd: repoRoot,
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', HOME: home, PROMA_DEV: '1' },
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: '1',
+        HOME: home,
+        ...(process.platform === 'win32' ? { USERPROFILE: home } : {}),
+        PROMA_DEV: '1',
+      },
       encoding: 'utf8',
     })
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0)
