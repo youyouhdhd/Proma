@@ -248,6 +248,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       stream: true,
     }
 
+    // Responses API 使用嵌套 reasoning.effort 字段承载线上推理强度。
+    if (typeof input.reasoningEffort === 'string') {
+      bodyObj.reasoning = { effort: input.reasoningEffort }
+    }
+
     if (input.tools && input.tools.length > 0) {
       bodyObj.tools = toResponsesTools(input.tools)
     }

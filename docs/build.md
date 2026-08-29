@@ -60,7 +60,8 @@ bun run --filter='@proma/electron' dist:win
 
 ```powershell
 Get-ChildItem apps/electron/out -File
-Get-FileHash 'apps/electron/out/Proma Setup 0.18.3.exe' -Algorithm SHA256
+$installer = Get-ChildItem 'apps/electron/out/Proma Setup *.exe' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256
 & 'apps/electron/out/win-unpacked/resources/bin/proma.exe' --help
 ```
 
