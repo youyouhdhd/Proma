@@ -38,6 +38,20 @@ export function getPreviewFileId(file: PreviewFile): string {
   return [file.filePath, file.previewOnly ? 'preview' : 'diff', file.gitRoot ?? '', file.baseRef ?? ''].join('\u0000')
 }
 
+/** 同一会话中单个预览文件的内容刷新版本。 */
+export function getPreviewContentRefreshKey(sessionId: string, file: Pick<PreviewFile, 'filePath' | 'previewOnly' | 'gitRoot' | 'baseRef'>): string {
+  return `${sessionId}\u0000${getPreviewFileId(file)}`
+}
+
+/**
+ * 纯文件预览的内容刷新版本：按 session + 文件隔离。
+ * 不复用 Git diff 的会话级版本，避免无关文件改动重载当前预览。
+ */
+export const previewContentRefreshVersionAtom = atom<Map<string, number>>(new Map())
+
+/** 纯预览最后一次实际解析到的绝对路径，用于精确匹配相对路径 watcher 事件。 */
+export const previewResolvedPathAtom = atom<Map<string, string>>(new Map())
+
 /** 每会话预览面板开关 */
 export const previewPanelOpenMapAtom = atom<Map<string, boolean>>(new Map())
 
@@ -68,7 +82,7 @@ export const currentSessionPreviewOpenAtom = atom<boolean>((get) => {
 // ===== 引用选中文本（Quoted Selection）=====
 
 /** 选中文本引用的来源 */
-export type QuotedSelectionSourceType = 'file' | 'agent-history' | 'scratch-pad'
+export type QuotedSelectionSourceType = 'file' | 'agent-history'
 
 /** 从预览面板或 Agent 历史中选中的文本引用 */
 export interface QuotedSelection {
@@ -98,7 +112,10 @@ export interface QuotedSelection {
   capturedAt: number
 }
 
-/** 每会话的引用选中文本 Map（每次新选中覆盖旧值） */
+/**
+ * 每会话的单条外置选区引用（兼容 Chat 与输入框尚未挂载时的回退）。
+ * Agent 主输入框的多条引用由 RichTextInput 内联 chip 持久化在草稿中。
+ */
 export const quotedSelectionMapAtom = atom<Map<string, QuotedSelection>>(new Map())
 
 /** 当前会话的引用选中文本（派生） */
