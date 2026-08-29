@@ -137,3 +137,4 @@ bun test apps/electron/src/main/lib/planning-manager.test.ts
 - [Electron package.json](../apps/electron/package.json)：桌面构建、重编译和分发脚本。
 - [electron-builder.yml](../apps/electron/electron-builder.yml)：应用、资源、asar 和平台目标配置。
 - [release.yml](../.github/workflows/release.yml)：CI 发布矩阵。
+- [Fork 维护与上游同步指南](./fork-maintenance.md)：记录本 Fork 的定制提交及未来重放流程。

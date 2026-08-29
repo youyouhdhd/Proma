@@ -6,7 +6,7 @@ It is not just another chat box. Proma is meant to become a long-lived Agent wor
 
 ![Proma Poster](https://img.erlich.fun/personal-blog/uPic/pb.png)
 
-[中文 README](./README.md) | [Beginner Tutorial](./tutorial/tutorial.md) | [Build Guide](./docs/build.md) | [Open-Source Release](https://github.com/proma-ai/Proma/releases) | [Commercial Version](https://proma.cool/download)
+[中文 README](./README.md) | [Beginner Tutorial](./tutorial/tutorial.md) | [Build Guide](./docs/build.md) | [Fork Maintenance Guide](./docs/fork-maintenance.md) | [Open-Source Release](https://github.com/proma-ai/Proma/releases) | [Commercial Version](https://proma.cool/download)
 
 ## What Proma Can Do
 
