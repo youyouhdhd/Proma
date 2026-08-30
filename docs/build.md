@@ -23,7 +23,7 @@ Proma 是 Bun workspace，桌面应用位于 `apps/electron`。根目录命令�
 - Node.js 22。仓库的发布工作流使用 Node.js 22，native 构建和 `node-gyp` 也应优先使用该版本。
 - 可访问 GitHub Release 的网络。首次安装 Electron、electron-builder 的 NSIS/winCodeSign 工具链时会下载缓存。
 
-Windows 还需要 Visual Studio 2022 的 Desktop development with C++ 工作负载、Windows SDK，以及与当前 MSVC 工具集匹配的 C++ Spectre-mitigated libraries（x86/x64）。`node-pty` 的 `binding.gyp` 明确启用了 Spectre mitigation；缺少它时会出现 `MSB8040`。
+标准 Windows 打包会验证并使用 `node-pty` 随包提供的 N-API 预编译产物，不要求本机安装完整 C++ 工具链。只有显式执行源码重编译，或预编译缺失/无法被 Electron 加载时，才需要 Visual Studio 2022 的 Desktop development with C++、Windows SDK 和 C++ Spectre-mitigated libraries（x86/x64）。
 
 确认工具链：
 
@@ -53,7 +53,7 @@ bun run --filter='@proma/electron' dist:win
 3. 用 `bun build --compile` 生成随应用分发的 `proma.exe` CLI。
 4. 跳过 macOS-only native helper。
 5. 把 Pi runtime、`pdfjs-dist`、`sharp` 和 `node-pty` 的运行时依赖闭包同步到 `apps/electron/node_modules`。
-6. 用 `electron-rebuild` 将 `node-pty` 重编译到当前 Electron 版本。
+6. 用 `prepare:node-pty` 在 Electron 中实际启动 PTY：Windows 预编译验证通过则直接使用；否则回退 `electron-rebuild`。macOS/Linux 保持源码重编译。
 7. 用 electron-builder 生成未安装目录和 NSIS 安装包。
 
 成功后检查：
@@ -67,18 +67,24 @@ Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256
 
 `out/`、`dist/` 和 `apps/electron/resources/bin/` 已被 `.gitignore` 忽略，构建产物不应提交到仓库。
 
-## 当前 Windows 主机的 native 兜底
+## Windows node-pty 策略
 
-如果暂时无法安装 Spectre 库，但 `node-pty` 已包含 `prebuilds/win32-x64/`，可以先验证 Electron 能加载预编译 N-API 模块，然后跳过 `electron-rebuild` 完成本地打包：
+`dist:win` 已内置可复现的预编译验证，不再需要手工跳过 `electron-rebuild`：
 
 ```powershell
-Set-Location apps/electron
-bun run build
-bun run sync:runtime-deps
-bun x electron-builder --win --x64 --publish never
+bun run --filter='@proma/electron' sync:runtime-deps
+bun run --filter='@proma/electron' prepare:node-pty
 ```
 
-这条路径只适合本地验证或临时交付，正式发布优先补齐 Visual Studio native 工具链并执行标准 `dist:win`。验证 unpacked 产物中的 PTY：
+验证脚本检查当前架构的 `conpty.node`、`conpty_console_list.node`、`pty.node`、`winpty-agent.exe` 和 `winpty.dll`，再通过 `ELECTRON_RUN_AS_NODE=1` 实际启动一次终端。只有完整通过才允许打包继续。
+
+如需验证从源码构建，执行：
+
+```powershell
+bun run --filter='@proma/electron' rebuild:node-pty
+```
+
+该命令不会关闭 `SpectreMitigation`；Windows 缺少 Spectre 库时会明确失败。验证 unpacked 产物中的 PTY：
 
 ```powershell
 Set-Location out/win-unpacked
@@ -87,7 +93,7 @@ $env:ELECTRON_RUN_AS_NODE = '1'
 Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 ```
 
-应看到 `exitCode:0` 和 `packaged-native-ok`。如果 `prebuilds/win32-x64` 不存在，不能使用该兜底路径。
+应看到 `exitCode:0` 和 `packaged-native-ok`。
 
 ## 其他平台
 
@@ -118,7 +124,9 @@ macOS 还需要 Xcode command-line tools；EventKit addon 和 Agent Island helpe
 
 ### `MSB8040: 此项目需要缓解了 Spectre 漏洞的库`
 
-在 Visual Studio Installer 中为当前 VS 2022 工具集安装 C++ Spectre-mitigated libraries（x86/x64），重新打开开发者终端后再次运行 `bun run dist:win`。不要用 npm/pnpm 替换 Bun，也不要删除项目对 `node-pty` 的 Spectre 设置来规避 native 构建。
+这个错误只表示源码重编译缺少一个 Visual Studio 可选组件，不是缺少两个 npm 依赖。在 Visual Studio Installer 中为当前 VS 2022 工具集安装 C++ Spectre-mitigated libraries（x86/x64）；组件 ID 为 `Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre`。重新打开终端后运行 `bun run --filter='@proma/electron' rebuild:node-pty` 验证。不要删除 `binding.gyp` / `winpty.gyp` 中的 Spectre 声明来绕过安全加固。
+
+官方 Windows CI 当前直接打包 node-pty 的预编译 N-API 产物，并不执行源码 `electron-rebuild`；因此官方构建成功不能证明 CI 安装了 Spectre 组件。
 
 ### Vite 提示 chunk 大于 500 kB
 

@@ -1,6 +1,6 @@
 # Proma Fork 维护与上游同步指南
 
-记录版本：0.1.3
+记录版本：0.1.4
 最后核对：2026-08-30
 适用对象：维护 `youyouhdhd/Proma` Fork 的开发者
 
@@ -40,6 +40,7 @@ git fetch upstream --prune
 - 自建模型推理档位以 `0a19e264` 为行为规格适配到上游新架构，没有覆盖上游 Pi 0.84.4、reasoning profiles、终端、Vault、LiveMarkdown 和新版工作区布局。
 - 集成版本：应用 `0.19.6`、shared `0.1.67`、core `0.2.18`、根项目 `0.1.3`。
 - 定制适配继续覆盖 Chat 与 Agent 双路径、频道配置 UI、多窗口频道同步及 BDD 测试。
+- Windows 打包在应用 `0.19.7` / 根项目 `0.1.4` 增加了 node-pty 预编译 Electron 冒烟验证；保留 Spectre 源码重编译，不再通过修改 gyp 降低安全选项。
 
 ## 本 Fork 的定制记录
 
