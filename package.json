@@ -1,6 +1,6 @@
 {
   "name": "proma",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Proma，为专业用户设计的 Agent",
   "type": "module",
   "private": true,
@@ -16,6 +16,8 @@
     "dist:mac": "bun run --filter='@proma/electron' dist:mac",
     "dist:win": "bun run --filter='@proma/electron' dist:win",
     "dist:linux": "bun run --filter='@proma/electron' dist:linux",
+    "sync:upstream": "bun run scripts/sync-upstream.ts",
+    "verify:upstream": "bun run typecheck && bun test && bun run electron:build",
     "build": "bun run --filter='*' build",
     "typecheck": "bun run --filter='*' typecheck",
     "test": "bun test"

@@ -147,3 +147,4 @@ bun test apps/electron/src/main/lib/planning-manager.test.ts
 - [electron-builder.yml](../apps/electron/electron-builder.yml)：应用、资源、asar 和平台目标配置。
 - [release.yml](../.github/workflows/release.yml)：CI 发布矩阵。
 - [Fork 维护与上游同步指南](./fork-maintenance.md)：记录本 Fork 的定制提交及未来重放流程。
+- [上游同步脚本](../scripts/sync-upstream.ts)：检查和应用上游更新，并可自动执行验证。

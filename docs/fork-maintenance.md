@@ -42,6 +42,13 @@ git fetch upstream --prune
 - 定制适配继续覆盖 Chat 与 Agent 双路径、频道配置 UI、多窗口频道同步及 BDD 测试。
 - Windows 打包在应用 `0.19.7` / 根项目 `0.1.4` 增加了 node-pty 预编译 Electron 冒烟验证；保留 Spectre 源码重编译，不再通过修改 gyp 降低安全选项。
 
+### 2026-08-30 上游同步自动化
+
+- 根项目 `0.1.5` 增加 `sync:upstream` 和 `verify:upstream` 入口。
+- `sync:upstream` 默认只检查；`--apply` 会检查工作区、抓取 origin/upstream、创建备份分支和同步分支，再增量合并上游。
+- `--apply --verify` 在无冲突合并后自动执行类型检查、全量测试和 Electron 构建；冲突或验证失败都会保留同步分支，不自动推送。
+- 当前 `main` 已经包含定制实现，未来从 `main` 合并上游时不需要重复 cherry-pick `0a19e264`；该提交仅作为从零恢复定制的历史规格。
+
 ## 本 Fork 的定制记录
 
 ### 定制提交：自建模型推理档位
@@ -90,6 +97,47 @@ git show 0a19e264 -- apps/electron packages
 
 ## 上游更新后的推荐流程
 
+### 自动流程（推荐）
+
+先在本地只检查上游：
+
+~~~powershell
+git switch main
+git config rerere.enabled true
+bun run sync:upstream
+~~~
+
+确认待合并提交后执行：
+
+~~~powershell
+bun run sync:upstream --apply --verify
+~~~
+
+脚本会自动创建类似下面的分支，并在成功后停留在同步分支：
+
+~~~text
+backup/main-before-upstream-20260830-123456
+sync/upstream-20260830-123456
+~~~
+
+如果没有冲突且验证通过，按脚本输出快进并推送：
+
+~~~powershell
+git switch main
+git merge --ff-only sync/upstream-<时间戳>
+git push origin main
+~~~
+
+如果出现冲突，脚本会停在同步分支；解决后执行：
+
+~~~powershell
+git add <已解决的文件>
+git commit -m "chore: resolve upstream sync"
+bun run verify:upstream
+~~~
+
+验证失败时保留同步分支排查，不要把未验证的合并结果快进到 `main`。脚本从不自动修改 `main` 或推送远端。
+
 ### 1. 先保存当前状态并获取上游
 
 ~~~powershell
@@ -118,7 +166,7 @@ git merge --no-commit upstream/main
 git merge --abort
 ~~~
 
-### 3. 先处理上游合并，再重放定制提交
+### 3. 先处理上游合并，再按需重放定制提交
 
 确认上游合并内容后提交合并结果，或者在合并提交状态下继续执行：
 
@@ -126,17 +174,22 @@ git merge --abort
 git status
 git add <已解决的文件>
 git commit -m "chore: merge upstream main"
+~~~
+
+当前 `main` 已包含适配后的定制实现，日常同步不要再执行 `git cherry-pick 0a19e264`。只有在从 `upstream/main` 或其他干净基线重新建立一个没有定制的 Fork 时，才使用该历史提交作为重放入口：
+
+~~~powershell
 git cherry-pick 0a19e264
 ~~~
 
-也可以直接从定制分支创建一个独立重放分支：
+也可以直接从旧定制分支创建一个独立重放分支（仅用于灾备/从零恢复）：
 
 ~~~powershell
 git switch -c "sync/custom-reasoning-$stamp" origin/feat/custom-model-reasoning
 git rebase upstream/main
 ~~~
 
-第一次同步更推荐前一种“从 Fork main 合并上游，再 cherry-pick 定制提交”的方式，因为它同时保留本 Fork 已提交的维护记录，并且不会改写远端定制分支历史。
+日常同步优先使用自动流程；手动流程只用于脚本无法处理的冲突或从零恢复。当前主分支已经把上游和定制提交串在同一条历史中，Git 的三方合并会自动携带非冲突定制。
 
 ### 4. 冲突处理原则
 
@@ -189,9 +242,7 @@ git cherry-pick --abort
 ### 5. 验证并合并回 main
 
 ~~~powershell
-bun install --frozen-lockfile
-bun run typecheck
-bun test
+bun run verify:upstream
 git diff --check
 git diff --stat upstream/main...HEAD
 git log --oneline --decorate upstream/main..HEAD
@@ -203,7 +254,7 @@ Windows 桌面构建：
 bun run --filter='@proma/electron' dist:win
 ~~~
 
-如果本机缺少 Visual Studio Spectre 库，按 [构建指南](./build.md) 的 native 兜底路径验证；正式发布仍应优先补齐 native 工具链。确认安装包、CLI 和 `node-pty` 均通过后，再合并同步分支：
+如果本机缺少 Visual Studio Spectre 库，`prepare:node-pty` 会优先验证官方预编译 N-API 产物；需要源码重编译时再按 [构建指南](./build.md) 补齐 native 工具链。确认安装包、CLI 和 `node-pty` 均通过后，再合并同步分支：
 
 ~~~powershell
 git switch main
@@ -237,6 +288,7 @@ git show --stat 0a19e264
 
 - 上游只通过 `upstream` 获取，不直接把 Fork 的 `origin` 当成上游。
 - 每个本地功能保持为独立、可 cherry-pick 的提交；不要把上游合并提交和定制实现混成一个无法识别的大提交。
+- 日常更新使用 `sync:upstream` 创建一次性同步分支；不要在 `main` 上直接试错，也不要每次重复 cherry-pick 已经进入 `main` 的提交。
 - 定制功能涉及多个 IPC 层时，继续同时维护 shared、main、preload、renderer 和测试。
 - 每次成功同步后，更新本文的快照提交、应用版本、共同基点和冲突清单。
 - 发布前保留 `git diff upstream/main...HEAD` 和 `git range-diff` 的审查记录，确认没有误覆盖上游改动。
