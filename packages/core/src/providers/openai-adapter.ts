@@ -22,6 +22,7 @@ import type {
   ContinuationMessage,
 } from './types.ts'
 import { resolveOpenAIChatCompletionsUrl } from './url-utils.ts'
+import { findUnsafeNestedStringLengths } from '../utils/grammar-bounds.ts'
 
 // ===== OpenAI 特有类型 =====
 
@@ -143,14 +144,23 @@ function toOpenAIMessages(input: StreamRequestInput): OpenAIMessage[] {
  * 将工具定义转换为 OpenAI 格式
  */
 function toOpenAITools(tools: ToolDefinition[]): Array<Record<string, unknown>> {
-  return tools.map((tool) => ({
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    },
-  }))
+  return tools.map((tool) => {
+    // llama.cpp 后端会对工具 schema 生成约束语法；嵌套字符串的 maxLength 超过
+    // 重复规则安全上限时，Agent 模式会在采样器初始化阶段直接报 400。
+    // 这里只告警不改写，避免静默改变第三方工具的行为契约。
+    const unsafe = findUnsafeNestedStringLengths(tool.parameters)
+    if (unsafe.length > 0) {
+      console.warn(`[openai-adapter] 工具 ${tool.name} 存在嵌套字符串 maxLength(${unsafe.join(', ')}) >= llama.cpp 语法重复上限，可能导致 Agent 模式 400: failed to parse grammar`)
+    }
+    return {
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      },
+    }
+  })
 }
 
 /**

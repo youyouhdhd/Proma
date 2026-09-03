@@ -39,6 +39,7 @@ import {
   resolveDelegationPermissionMode,
 } from './agent-collaboration-utils'
 import { assertEnabledModelForChannel, listEnabledAgentModelsForChannel } from './agent-model-selection'
+import { answersArrayToRecord, askUserAnswersSchema } from './ask-user-tool-schema'
 
 interface CollaborationToolContext {
   sessionId: string
@@ -960,11 +961,11 @@ export function buildPiCollaborationTools(
       parameters: Type.Object({
         delegationId: Type.String({ description: '子会话所属的委派 ID' }),
         blockedEventId: Type.String({ description: '要回答的阻塞事件 ID' }),
-        answers: Type.Optional(Type.Record(Type.String(), Type.String(), { description: 'AskUserQuestion 的回答' })),
+        answers: Type.Optional(askUserAnswersSchema),
         permissionBehavior: Type.Optional(Type.Union([Type.Literal('allow'), Type.Literal('deny')])),
       }),
       async execute(_toolCallId: string, params: unknown) {
-        const args = params as { delegationId: string; blockedEventId: string; answers?: Record<string, string>; permissionBehavior?: 'allow' | 'deny' }
+        const args = params as { delegationId: string; blockedEventId: string; answers?: Array<{ question: string; answer: string }>; permissionBehavior?: 'allow' | 'deny' }
         const blocked = getBlockedEventById(args.blockedEventId)
         if (!blocked) throw new Error(`阻塞事件不存在: ${args.blockedEventId}`)
         if (blocked.resolved) return piJsonResult({ answered: false, note: '该阻塞事件已被解决' })
@@ -976,7 +977,7 @@ export function buildPiCollaborationTools(
 
         if (blocked.type === 'ask_user' && blocked.askUserRequestId) {
           const { askUserService } = await import('./agent-ask-user-service')
-          const answers = args.answers ?? {}
+          const answers = answersArrayToRecord(args.answers)
           const sessionId = askUserService.respondToAskUser(blocked.askUserRequestId, answers)
           blocked.resolved = !!sessionId
           if (blocked.resolved && _eventBusRef) {

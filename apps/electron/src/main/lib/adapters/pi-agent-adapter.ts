@@ -65,6 +65,7 @@ import { createDeepSeekReasoningRequestExtension } from './pi-deepseek-reasoning
 import { createOpenAIReasoningRequestExtension } from './pi-openai-reasoning-request-settings'
 import { mergeRuntimeEnv, type AgentRuntimeEnv } from '../agent-runtime-env'
 import { sanitizePiMessageImageContent, sanitizeToolResultImageContent } from '../image-content-validation'
+import { askUserAnswersSchema } from '../ask-user-tool-schema'
 import {
   convertPiMessage,
   convertResultMessage,
@@ -963,11 +964,11 @@ function buildPromaProductToolDefinitions(sdk: PiSdk, canUseTool: PiAgentQueryOp
             preview: Type.Optional(Type.String({ description: '可选预览内容。' })),
           }))),
         })),
-        answers: Type.Optional(Type.Record(Type.String(), Type.String())),
+        answers: Type.Optional(askUserAnswersSchema),
       }),
       async execute(_toolCallId, params) {
         const input = params as Record<string, unknown>
-        return createJsonToolResult({ answers: input.answers ?? {} })
+        return createJsonToolResult({ answers: input.answers ?? [] })
       },
     }),
     sdk.defineTool({

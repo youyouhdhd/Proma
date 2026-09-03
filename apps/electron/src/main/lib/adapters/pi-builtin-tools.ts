@@ -1012,9 +1012,13 @@ function buildBrowserTools(sdk: PiSdk, ctx: PiBuiltinToolsContext): ToolDefiniti
       description: 'Click a current BrowserObserve/BrowserFind reference and optionally wait for one URL, visible-text, or CSS-selector condition in the same serialized operation. Prefer this to a separate click and wait when the expected condition is known.',
       parameters: Type.Object({
         ref: Type.String({ description: 'Element reference from the latest BrowserObserve or BrowserFind result.' }),
+        // 嵌套在对象属性里的带长度约束字符串会被 llama.cpp 工具语法转换成
+        // char{1,N} 定长规则；当 N >= MAX_REPETITION_THRESHOLD(2000) 时，
+        // 解析器会直接抛出 "failed to parse grammar"（1 × 2000 正好命中上限）。
+        // 顶层字符串参数不受影响（会走 xml-arg-string 扫描规则），因此这里只约束嵌套字段。
         waitFor: Type.Optional(Type.Object({
           kind: Type.Union([Type.Literal('url'), Type.Literal('text'), Type.Literal('selector')]),
-          value: Type.String({ minLength: 1, maxLength: 2000, description: 'Expected URL fragment, visible text, or CSS selector.' }),
+          value: Type.String({ minLength: 1, maxLength: 1024, description: 'Expected URL fragment, visible text, or CSS selector.' }),
         })),
         timeoutMs: Type.Optional(Type.Number({ minimum: 250, maximum: 30000, description: 'Maximum wait time when waitFor is supplied. Defaults to 10000.' })),
         tabId: Type.Optional(Type.String({ description: 'Optional tab id. Defaults to the Agent working tab.' })),
