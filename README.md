@@ -2,6 +2,16 @@
 
 Proma 是一个本地优先的 AI 桌面应用，把多模型 Chat、通用 Agent、工作区、Skills、MCP、远程机器人和记忆能力放在同一个开源客户端里。
 
+> **[Fork 说明]** 本仓库是 [proma-ai/Proma](https://github.com/proma-ai/Proma) 的增强 Fork，自 **v1.0.0** 起使用独立版本号（与上游版本号无关，每个版本基于的上游基准记录在 Release 说明与 [Fork 维护指南](./docs/fork-maintenance.md) 中）。相比上游的主要差异：
+>
+> - **临时提问浮窗（QuickAsk）**：Chat / Agent 内一键唤起与当前会话完全隔离的短对话，支持独立选模型与推理档位，不污染原会话上下文；
+> - **自建渠道推理档位**：OpenAI 兼容自建渠道可声明推理档位并映射为 `reasoning_effort`，Chat / Agent 工具栏直接切换（上游仅对内置模型提供思考深度）；
+> - **飞书卡片显示渠道名**：同一模型存在多渠道时，卡片底部可分辨实际使用的渠道；
+> - **渲染修复**：未标注语言的代码块不再把路径清单误判为编程语言；
+> - **稳定打包方案**：固定 hoisted 安装布局、Electron 二进制自检的一键构建脚本（`scripts/build-win.ps1`）。
+>
+> 同步策略：定期合并上游（`bun run sync:upstream`），完整差异清单与冲突处理记录见 [docs/fork-maintenance.md](./docs/fork-maintenance.md)。
+
 它不是只面向闲聊的聊天框，而是一个可以长期沉淀个人工作流的 Agent 工作台：简单问题用 Chat，复杂任务交给 Agent，数据和配置尽量留在本地。
 
 ![Proma 海报](https://img.erlich.fun/personal-blog/uPic/pb.png)

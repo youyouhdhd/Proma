@@ -2,6 +2,16 @@
 
 Proma is a local-first AI desktop app that brings multi-model Chat, general-purpose Agent workflows, workspaces, Skills, MCP, remote bots, and memory into one open-source client.
 
+> **[Fork notice]** This repository is an enhanced fork of [proma-ai/Proma](https://github.com/proma-ai/Proma) and has used its **own version line since v1.0.0** (independent from upstream versioning; the upstream base of each release is documented in its release notes and the [Fork Maintenance Guide](./docs/fork-maintenance.md)). Key differences from upstream:
+>
+> - **QuickAsk floating panel**: an isolated short-conversation popup inside Chat / Agent with its own model and reasoning-level selection, never touching the host session's context;
+> - **Custom-channel reasoning levels**: self-hosted OpenAI-compatible channels can declare reasoning levels mapped to `reasoning_effort`, switchable directly in the Chat / Agent toolbar (upstream only offers thinking depth for built-in models);
+> - **Feishu cards show the channel name**: with the same model on multiple channels, the actual channel is now visible on the card footer;
+> - **Rendering fix**: untagged code blocks no longer misclassify path lists as programming languages;
+> - **Stable packaging**: pinned hoisted install layout plus an Electron binary self-check in the one-command build script (`scripts/build-win.ps1`).
+>
+> Sync policy: upstream is merged regularly (`bun run sync:upstream`); the full diff inventory and conflict notes live in [docs/fork-maintenance.md](./docs/fork-maintenance.md).
+
 It is not just another chat box. Proma is meant to become a long-lived Agent workbench for your personal workflows: use Chat for simple answers, use Agent when the task needs to act on files, tools, projects, and longer context.
 
 ![Proma Poster](https://img.erlich.fun/personal-blog/uPic/pb.png)

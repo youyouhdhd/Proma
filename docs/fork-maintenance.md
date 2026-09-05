@@ -51,7 +51,7 @@ git fetch upstream --prune
 
 ### 2026-09-06 状态快照（v0.19.26 上游同步）
 
-- 本 Fork 的 `main`：合入上游 `7a3721d7`（官方 v0.19.26 之后的 main，共 21 个上游提交），应用版本 `0.19.32`。
+- 本 Fork 的 `main`：合入上游 `7a3721d7`（官方 v0.19.26 之后的 main，共 21 个上游提交），应用版本 `1.0.0`（Fork 独立版本号起始，见「独立版本号策略」）。
 - 本次合入的上游重点：Slack Bridge、GPT-6 Astra（Codex）、Gemini 3 思考深度（`thinkingLevel` 字段 + `ChatThinkingPopover`）、Brave/Tavily MCP 预设、移除教程功能链路、Pi runtime 升级 0.85.0（补丁文件随之重命名）。
 - 与本 Fork 定制的合并策略：`thinkingLevel`（上游内置模型思考深度）与本 Fork 的 `reasoningLevel`（自建渠道声明档位）在 ChatSendInput / StreamRequestInput 中**并存**，openai-adapter 的 `reasoningEffort` 映射保留；ChatInput 工具栏同时保留 `ChatThinkingPopover` 与渠道档位 Select。
 - 同步验证：typecheck 六包全绿、bun test 543 用例全过、Windows 打包通过。
@@ -430,6 +430,15 @@ git show --stat 0a19e264
 - 定制功能涉及多个 IPC 层时，继续同时维护 shared、main、preload、renderer 和测试。
 - 每次成功同步后，更新本文的快照提交、应用版本、共同基点和冲突清单。
 - 发布前保留 `git diff upstream/main...HEAD` 和 `git range-diff` 的审查记录，确认没有误覆盖上游改动。
+
+## 独立版本号策略
+
+自 `v1.0.0` 起，本 Fork 使用独立版本号，不再跟随上游 `0.19.x` 序列：
+
+- **patch**：缺陷修复与构建改进；**minor**：功能新增或大型上游合并；**major**：预留重大变更。
+- 每个 Release 说明标注基于的上游基准（tag 或 commit），Release 产物由 `v*` tag 触发的 CI 自动构建。
+- 应用版本（`apps/electron/package.json`）与根工程版本（`package.json`）随 Release 同步到同一版本号；`packages/*` 内部库版本保持各自序列。
+- README 顶部保留 Fork 横幅，说明差异清单与本策略，控制篇幅以降低与上游 README 的合并冲突。
 
 ## 相关文件
 
