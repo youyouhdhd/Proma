@@ -27,6 +27,8 @@ export interface RenderOptions {
   showToolCalls?: boolean
   /** 卡片头部小标题，例如 "@xxx Bot · 工作区 yyy"。 */
   header?: string
+  /** 卡片底部展示的模型描述（如 "渠道名 / 模型名"）。缺省时回退 state.meta.model。 */
+  modelDisplay?: string
 }
 
 interface ToolGroup {
@@ -76,7 +78,7 @@ export function renderCard(state: RunState, opts: RenderOptions = {}): object {
     if (state.footer) elements.push(footerStatus(state.footer, state.blocks))
     if (opts.stopHint) elements.push(noteMd(opts.stopHint))
   } else {
-    elements.push(metaFooter(state))
+    elements.push(metaFooter(state, opts))
   }
 
   const card: Record<string, unknown> = {
@@ -216,7 +218,7 @@ function footerStatus(status: Exclude<FooterStatus, null>, blocks: Block[]): obj
   return noteMd('正在调用工具')
 }
 
-function metaFooter(state: RunState): object {
+function metaFooter(state: RunState, opts: RenderOptions): object {
   const parts: string[] = []
   if (state.meta.durationMs !== undefined) {
     parts.push(`${(state.meta.durationMs / 1000).toFixed(1)}s`)
@@ -226,8 +228,9 @@ function metaFooter(state: RunState): object {
     const o = state.meta.outputTokens ?? 0
     parts.push(`${i}↑ ${o}↓ tokens`)
   }
-  if (state.meta.model) {
-    parts.push(state.meta.model)
+  const modelDisplay = opts.modelDisplay ?? state.meta.model
+  if (modelDisplay) {
+    parts.push(modelDisplay)
   }
   return noteMd(parts.length > 0 ? parts.join('  ·  ') : '_已完成_')
 }
