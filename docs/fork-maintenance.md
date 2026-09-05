@@ -49,6 +49,13 @@ git fetch upstream --prune
 - `--apply --verify` 在无冲突合并后自动执行类型检查、全量测试和 Electron 构建；冲突或验证失败都会保留同步分支，不自动推送。
 - 当前 `main` 已经包含定制实现，未来从 `main` 合并上游时不需要重复 cherry-pick `0a19e264`；该提交仅作为从零恢复定制的历史规格。
 
+### 2026-09-06 状态快照（v0.19.26 上游同步）
+
+- 本 Fork 的 `main`：合入上游 `7a3721d7`（官方 v0.19.26 之后的 main，共 21 个上游提交），应用版本 `0.19.32`。
+- 本次合入的上游重点：Slack Bridge、GPT-6 Astra（Codex）、Gemini 3 思考深度（`thinkingLevel` 字段 + `ChatThinkingPopover`）、Brave/Tavily MCP 预设、移除教程功能链路、Pi runtime 升级 0.85.0（补丁文件随之重命名）。
+- 与本 Fork 定制的合并策略：`thinkingLevel`（上游内置模型思考深度）与本 Fork 的 `reasoningLevel`（自建渠道声明档位）在 ChatSendInput / StreamRequestInput 中**并存**，openai-adapter 的 `reasoningEffort` 映射保留；ChatInput 工具栏同时保留 `ChatThinkingPopover` 与渠道档位 Select。
+- 同步验证：typecheck 六包全绿、bun test 543 用例全过、Windows 打包通过。
+
 ### 2026-09-05 状态快照
 
 - 本 Fork 的 `main`：`358c42e2`（应用版本 `0.19.25`），工作区干净，与 `origin/main` 同步。
