@@ -46,6 +46,7 @@ import {
   parseCodexCredentials,
   parseXaiCredentials,
 } from '@proma/shared'
+import { copyTextToClipboard } from '@/lib/clipboard'
 import type {
   Channel,
   ChannelCreateInput,
@@ -274,6 +275,11 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   const [pendingRiskAction, setPendingRiskAction] = React.useState<'auto-save' | 'create' | 'fetch' | 'save-and-close' | 'test' | null>(null)
   const [codexLoggingIn, setCodexLoggingIn] = React.useState(false)
   const [codexDeviceCode, setCodexDeviceCode] = React.useState<CodexOAuthDeviceCode | null>(null)
+  /** Codex OAuth 授权 URL（Pi notify auth_url 事件推送） */
+  const [codexAuthUrl, setCodexAuthUrl] = React.useState<string | null>(null)
+  /** Pi 已进入 manual_code 等待：允许粘贴回调 URL */
+  const [codexManualRequested, setCodexManualRequested] = React.useState(false)
+  const [codexCallbackInput, setCodexCallbackInput] = React.useState('')
   const [xaiLoggingIn, setXaiLoggingIn] = React.useState(false)
   const [xaiDeviceCode, setXaiDeviceCode] = React.useState<XaiOAuthDeviceCode | null>(null)
 
@@ -291,6 +297,14 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
 
   React.useEffect(() => {
     return window.electronAPI.onCodexOAuthDeviceCode(setCodexDeviceCode)
+  }, [])
+
+  React.useEffect(() => {
+    return window.electronAPI.onCodexOAuthAuthUrl((payload) => setCodexAuthUrl(payload.url))
+  }, [])
+
+  React.useEffect(() => {
+    return window.electronAPI.onCodexOAuthManualCodeRequested(() => setCodexManualRequested(true))
   }, [])
 
   React.useEffect(() => {
@@ -601,6 +615,43 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     codexLoggingInRef.current = false
     void window.electronAPI.codexOAuthCancel()
     setCodexDeviceCode(null)
+    setCodexAuthUrl(null)
+    setCodexManualRequested(false)
+    setCodexCallbackInput('')
+  }
+
+  /** 复制授权链接（用户在任意浏览器 / 设备打开均可） */
+  const handleCopyCodexAuthUrl = async (): Promise<void> => {
+    if (!codexAuthUrl) return
+    try {
+      await copyTextToClipboard(codexAuthUrl)
+      toast.success('授权链接已复制')
+    } catch {
+      toast.error('复制失败，请手动选择链接复制')
+    }
+  }
+
+  /**
+   * 提交手动回调 URL。只做非空校验；code 提取、state 校验与 token 交换
+   * 全部由 Pi 完成。URL 含授权码，绝不记录到日志。
+   */
+  const handleCodexSubmitCallback = (): void => {
+    const trimmed = codexCallbackInput.trim()
+    if (!trimmed) {
+      toast.error('请粘贴授权完成后的回调地址')
+      return
+    }
+    void window.electronAPI.codexOauthSubmitCallback(trimmed).then((result) => {
+      if (result.accepted) {
+        setCodexCallbackInput('')
+        toast.success('回调已提交，正在完成登录…')
+      } else {
+        toast.error('当前没有等待中的手动授权请求')
+      }
+    }).catch((error) => {
+      console.error('[模型配置表单] 提交回调失败:', error)
+      toast.error('提交失败，请重试')
+    })
   }
 
   /** 发起 ChatGPT (Codex) OAuth 登录，默认系统浏览器；网络受限时可改用设备码。 */
@@ -608,6 +659,9 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     codexLoggingInRef.current = true
     setCodexLoggingIn(true)
     setCodexDeviceCode(null)
+    setCodexAuthUrl(null)
+    setCodexManualRequested(false)
+    setCodexCallbackInput('')
     setTestResult(null)
     try {
       const result = await window.electronAPI.codexOAuthLogin(method)
@@ -1091,6 +1145,32 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                     <div>在任意可访问网络的浏览器中打开链接，并输入设备码：<span className="font-mono font-medium text-foreground">{codexDeviceCode.userCode}</span></div>
                     <a href={codexDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">打开 ChatGPT 授权页面</a>
                     {codexDeviceCode.qrCodeData && <img src={codexDeviceCode.qrCodeData} alt="ChatGPT 设备码授权二维码" className="h-28 w-28 rounded bg-white p-1" />}
+                  </div>
+                )}
+                {codexLoggingIn && codexAuthUrl && (
+                  <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs space-y-2">
+                    <div className="font-medium text-foreground">登录 ChatGPT / Codex</div>
+                    <div className="text-muted-foreground">1. 打开或复制下面的授权链接，在任意浏览器完成登录：</div>
+                    <div className="max-h-16 overflow-y-auto break-all rounded bg-muted/60 px-2 py-1.5 font-mono text-[11px] text-foreground/80 select-all">{codexAuthUrl}</div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" type="button" className="h-7 flex-1" onClick={() => void handleCopyCodexAuthUrl()}>复制链接</Button>
+                      <Button variant="outline" size="sm" type="button" className="h-7 flex-1" onClick={() => void window.electronAPI.openExternal(codexAuthUrl)}>打开浏览器</Button>
+                    </div>
+                    <div className="text-muted-foreground">{codexManualRequested ? '等待授权… 自动回调与手动粘贴哪个先完成即用哪个。' : '正在生成授权链接…'}</div>
+                    <div className="border-t border-border/60 pt-2 space-y-1.5">
+                      <div className="text-muted-foreground">如果浏览器无法自动返回 Proma（如远程 / 沙盒浏览器），请复制浏览器地址栏中以 <span className="font-mono">http://localhost:1455/auth/callback</span> 开头的完整地址粘贴到这里；页面打不开也没关系，地址栏里有授权码即可。</div>
+                      <input
+                        type="text"
+                        value={codexCallbackInput}
+                        onChange={(e) => setCodexCallbackInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleCodexSubmitCallback() }}
+                        placeholder={codexManualRequested ? 'http://localhost:1455/auth/callback?code=…&state=…' : '等待授权请求…'}
+                        disabled={!codexManualRequested}
+                        className="w-full rounded bg-muted/60 px-2 py-1.5 font-mono text-[11px] outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+                        autoComplete="off"
+                      />
+                      <Button variant="secondary" size="sm" type="button" className="w-full" disabled={!codexManualRequested || !codexCallbackInput.trim()} onClick={handleCodexSubmitCallback}>完成登录</Button>
+                    </div>
                   </div>
                 )}
                 {hasRequiredSecret ? (

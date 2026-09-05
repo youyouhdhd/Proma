@@ -338,6 +338,15 @@ export interface ElectronAPI {
   /** 取消进行中的 ChatGPT (Codex) OAuth 登录 */
   codexOAuthCancel: () => Promise<void>
 
+  /** 提交手动授权回调 URL（首次生效；URL 含授权码，不得记录或展示） */
+  codexOauthSubmitCallback: (callbackUrl: string) => Promise<import('@proma/shared').CodexOAuthSubmitCallbackResult>
+
+  /** 订阅 Codex OAuth 授权 URL 生成事件 */
+  onCodexOAuthAuthUrl: (callback: (payload: { url: string }) => void) => () => void
+
+  /** 订阅 Pi manual_code prompt 事件（等待用户粘贴回调 URL） */
+  onCodexOAuthManualCodeRequested: (callback: (request: import('@proma/shared').CodexOAuthManualCodeRequest) => void) => () => void
+
   /** 订阅登录期间，接收 Codex device code 与授权链接。返回取消订阅函数。 */
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => () => void
 
@@ -1607,6 +1616,22 @@ const electronAPI: ElectronAPI = {
 
   codexOAuthCancel: () => {
     return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_CANCEL)
+  },
+
+  codexOauthSubmitCallback: (callbackUrl: string) => {
+    return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK, callbackUrl)
+  },
+
+  onCodexOAuthAuthUrl: (callback: (payload: { url: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { url: string }) => callback(payload)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, listener)
+  },
+
+  onCodexOAuthManualCodeRequested: (callback: (request: import('@proma/shared').CodexOAuthManualCodeRequest) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: import('@proma/shared').CodexOAuthManualCodeRequest) => callback(request)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_CODE_REQUESTED, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_CODE_REQUESTED, listener)
   },
 
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => {

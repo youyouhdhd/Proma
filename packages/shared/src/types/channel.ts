@@ -507,6 +507,12 @@ export const CHANNEL_IPC_CHANNELS = {
   CODEX_OAUTH_CANCEL: 'channel:codex-oauth-cancel',
   /** Codex device-code 已就绪（主进程推送给发起登录的渲染窗口） */
   CODEX_OAUTH_DEVICE_CODE: 'channel:codex-oauth-device-code',
+  /** Codex OAuth 授权 URL 已生成（主进程推送给发起登录的渲染窗口） */
+  CODEX_OAUTH_AUTH_URL: 'channel:codex-oauth-auth-url',
+  /** Pi 触发 manual_code prompt：等待用户粘贴授权回调 URL */
+  CODEX_OAUTH_MANUAL_CODE_REQUESTED: 'channel:codex-oauth-manual-code-requested',
+  /** 渲染进程提交手动授权回调 URL（首次生效，重复提交忽略） */
+  CODEX_OAUTH_SUBMIT_CALLBACK: 'channel:codex-oauth-submit-callback',
   /** 发起 xAI（Grok/X 订阅）OAuth 登录 */
   XAI_OAUTH_LOGIN: 'channel:xai-oauth-login',
   /** 取消进行中的 xAI OAuth 登录流程 */
@@ -529,6 +535,17 @@ export interface CodexOAuthDeviceCode {
   verificationUri: string
   /** 可扫码交给另一台可联网设备完成授权。 */
   qrCodeData?: string
+}
+
+/** Pi manual_code prompt 的请求载荷（用户可粘贴完整回调 URL / code#state / 纯 code）。 */
+export interface CodexOAuthManualCodeRequest {
+  message: string
+  placeholder?: string
+}
+
+/** 提交手动回调 URL 的结果；重复提交只允许首次生效。 */
+export interface CodexOAuthSubmitCallbackResult {
+  accepted: boolean
 }
 
 export interface CodexOAuthLoginResult {

@@ -12,8 +12,9 @@
  */
 
 import { shell } from 'electron'
-import type { CodexOAuthCredentials, CodexOAuthDeviceCode, CodexOAuthLoginMethod } from '@proma/shared'
+import type { CodexOAuthCredentials, CodexOAuthDeviceCode, CodexOAuthLoginMethod, CodexOAuthManualCodeRequest } from '@proma/shared'
 import { runWithOAuthProxyScope } from './oauth-proxy-scope'
+import { ManualCodeGate } from './codex-oauth-manual-gate'
 /** Pi 0.80.10 将 OAuth 流程收敛到 ModelRuntime。保持动态 import，避免 Electron 主包将 Pi runtime 内联。 */
 type PiSdk = typeof import('@earendil-works/pi-coding-agent')
 
@@ -61,6 +62,16 @@ function normalizeCredentials(value: unknown): CodexOAuthCredentials {
 
 /** 进行中的登录流程的取消控制器（同一时刻只允许一个登录流程）。 */
 let activeLoginAbort: AbortController | undefined
+/** 当前登录的 manual_code 输入闸门（与 activeLoginAbort 同生命周期）。 */
+let activeManualGate: ManualCodeGate | undefined
+
+/**
+ * 提交手动授权回调 URL（渲染进程「完成登录」按钮）。
+ * 只有当前登录存在且尚未完成时首次提交生效；URL 含授权码，此处绝不记录。
+ */
+export function submitCodexOAuthCallbackUrl(callbackUrl: string): { accepted: boolean } {
+  return activeManualGate ? activeManualGate.submit(callbackUrl) : { accepted: false }
+}
 
 /**
  * 注意：Pi 0.80.10 的公开 OAuth API 不再接收 fetch 注入。依赖升级补丁会把
@@ -74,6 +85,13 @@ export interface CodexLoginCallbacks {
   onDeviceCode?: (deviceCode: CodexOAuthDeviceCode) => void
   /** 进度消息回调。 */
   onProgress?: (message: string) => void
+  /**
+   * Pi manual_code prompt 触发：localhost 回调与手动输入在 Pi 内部竞速。
+   * 实现方借此通知 UI 展示手动回调输入框；用户提交的 URL 由
+   * submitCodexOAuthCallbackUrl 递回内部 ManualCodeGate（首次生效），
+   * 解析、state 校验与 token 交换全部由 Pi 完成。
+   */
+  onManualCodeRequested?: (request: CodexOAuthManualCodeRequest) => void
 }
 
 export interface CodexLoginOptions extends CodexLoginCallbacks {
@@ -95,6 +113,8 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
   activeLoginAbort?.abort()
   const abort = new AbortController()
   activeLoginAbort = abort
+  const manualGate = new ManualCodeGate()
+  activeManualGate = manualGate
 
   try {
     return await runWithOAuthProxyScope(async () => {
@@ -106,6 +126,21 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
         signal: abort.signal,
         prompt: async (prompt) => {
           if (prompt.type === 'select') return method
+          if (prompt.type === 'manual_code' && options?.onManualCodeRequested) {
+            // Pi 已实现 parseAuthorizationInput（完整 URL / code#state / query / 纯 code）
+            // 与 state 校验，这里只把用户输入原样交还，绝不解析或记录其内容。
+            const request: CodexOAuthManualCodeRequest = {
+              message: prompt.message,
+              ...(prompt.placeholder ? { placeholder: prompt.placeholder } : {}),
+            }
+            const onAbort = (): void => manualGate.cancel(new Error('登录已取消'))
+            prompt.signal?.addEventListener('abort', onAbort, { once: true })
+            abort.signal.addEventListener('abort', onAbort, { once: true })
+            return manualGate.waitForInput(request).finally(() => {
+              prompt.signal?.removeEventListener('abort', onAbort)
+              abort.signal.removeEventListener('abort', onAbort)
+            })
+          }
           return new Promise<string>((_resolve, reject) => {
             prompt.signal?.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
             abort.signal.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
@@ -130,6 +165,7 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
   } finally {
     if (activeLoginAbort === abort) {
       activeLoginAbort = undefined
+      activeManualGate = undefined
     }
   }
 }
@@ -138,6 +174,8 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
 export function cancelCodexOAuthLogin(): void {
   activeLoginAbort?.abort()
   activeLoginAbort = undefined
+  activeManualGate?.cancel(new Error('登录已取消'))
+  activeManualGate = undefined
 }
 
 /**

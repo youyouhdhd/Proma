@@ -191,7 +191,7 @@ import {
   getChannelById,
   getChannelPlanQuota,
 } from './lib/channel-manager'
-import { loginCodexOAuth, cancelCodexOAuthLogin } from './lib/codex-oauth-service'
+import { loginCodexOAuth, cancelCodexOAuthLogin, submitCodexOAuthCallbackUrl } from './lib/codex-oauth-service'
 import { loginXaiOAuth, cancelXaiOAuthLogin } from './lib/xai-oauth-service'
 import { resolvePiReasoningCapability } from './lib/adapters/pi-model-registry'
 import { serializeCodexCredentials, serializeXaiCredentials } from '@proma/shared'
@@ -1733,14 +1733,22 @@ export function registerIpcHandlers(): void {
     CHANNEL_IPC_CHANNELS.CODEX_OAUTH_LOGIN,
     async (event, requestedMethod?: CodexOAuthLoginMethod): Promise<import('@proma/shared').CodexOAuthLoginResult> => {
       const method: CodexOAuthLoginMethod = requestedMethod === 'device_code' ? 'device_code' : 'browser'
+      const sender = event.sender
+      const sendToSender = (channel: string, payload: unknown): void => {
+        if (!sender.isDestroyed()) sender.send(channel, payload)
+      }
       try {
         const credentials = await loginCodexOAuth({
           method,
+          onAuthUrl: (url) => {
+            sendToSender(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, { url })
+          },
+          onManualCodeRequested: (request) => {
+            sendToSender(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_CODE_REQUESTED, request)
+          },
           onDeviceCode: (deviceCode) => {
             void withOAuthDeviceCodeQr(deviceCode).then((payload) => {
-              if (!event.sender.isDestroyed()) {
-                event.sender.send(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_DEVICE_CODE, payload)
-              }
+              sendToSender(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_DEVICE_CODE, payload)
             }).catch((error) => console.warn('[OAuth] 发送 Codex device code 失败:', error))
           },
         })
@@ -1763,6 +1771,18 @@ export function registerIpcHandlers(): void {
     CHANNEL_IPC_CHANNELS.CODEX_OAUTH_CANCEL,
     async (): Promise<void> => {
       cancelCodexOAuthLogin()
+    }
+  )
+
+  // 渲染进程提交手动授权回调 URL（首次生效，重复提交忽略）
+  ipcMain.handle(
+    CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK,
+    (_, callbackUrl: string): import('@proma/shared').CodexOAuthSubmitCallbackResult => {
+      if (typeof callbackUrl !== 'string' || callbackUrl.trim().length === 0) {
+        return { accepted: false }
+      }
+      // 不记录 callbackUrl（含 authorization code）
+      return submitCodexOAuthCallbackUrl(callbackUrl.trim())
     }
   )
 
