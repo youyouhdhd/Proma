@@ -72,9 +72,31 @@ const DETECT_LANGS = [
 const RELEVANCE_THRESHOLD = 5
 
 /**
+ * 路径形态整行正则：单个无空白 token，由路径安全字符组成且至少含一个路径分隔符。
+ *
+ * 模型常在未标注语言的 fenced code block 中输出文件清单（每行一个路径）。
+ * 这类内容会被 highlight.js 误判为 bash / swift / css 等语言（如多行
+ * apps/electron/... 路径列表曾以 relevance 11 命中 swift），导致代码块
+ * 顶栏显示错误语言标签、内容按错误语法高亮。检测前先识别“整块都是路径”
+ * 并直接回退 text，不做语言猜测。
+ */
+const PATH_LINE_RE = /^(?:[A-Za-z0-9_.\-:@~+%=,#?&]*[\\/])+[A-Za-z0-9_.\-:@~+%=,#?&]*$/
+
+/**
+ * 判断内容是否“整块都是文件路径”：至少一行非空，且每个非空行都是
+ * 无空白的单个路径 token。含命令、注释、代码等任何其他形态时返回 false。
+ */
+export function isPathOnlyContent(code: string): boolean {
+  const lines = code.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0)
+  if (lines.length === 0) return false
+  return lines.every((line) => !/\s/.test(line) && PATH_LINE_RE.test(line))
+}
+
+/**
  * 自动检测代码语言
  * - 走 highlight.js highlightAuto + 置信度门槛
  * - 识别失败返回 'text'
+ * - 整块都是文件路径时直接返回 'text'，避免误判为 bash / swift 等语言
  *
  * @param code 代码内容
  * @returns 语言标识，可直接传给 Shiki
@@ -82,6 +104,7 @@ const RELEVANCE_THRESHOLD = 5
 export function detectLanguage(code: string): string {
   const trimmed = code.trim()
   if (!trimmed) return 'text'
+  if (isPathOnlyContent(trimmed)) return 'text'
 
   ensureRegistered()
   try {
