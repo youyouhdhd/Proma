@@ -10,6 +10,7 @@ import { getSettingsPath } from './config-paths'
 import { DEFAULT_THEME_MODE, normalizeProductivityToolsSettings } from '../../types'
 import type { AgentIslandSettings, AppSettings } from '../../types'
 import { getTerminalProfilesForPlatform, isTerminalProfile } from '@proma/shared'
+import { normalizePromaMcpServerConfig } from './mcp-server/config'
 
 function sanitizeAgentIslandSettings(input: unknown): AgentIslandSettings | undefined {
   if (!input || typeof input !== 'object') return undefined
@@ -40,6 +41,7 @@ export function getSettings(): AppSettings {
       longTextPasteAsAttachmentEnabled: false,
       richTextRenderingEnabled: false,
       feishuSessionMirror: { mode: 'off' },
+      mcpServer: normalizePromaMcpServerConfig(undefined),
       visionRelay: { enabled: false },
       windowsShellPreference: 'auto',
       agentThinking: { type: 'adaptive' },
@@ -78,6 +80,7 @@ export function getSettings(): AppSettings {
       longTextPasteAsAttachmentEnabled: data.longTextPasteAsAttachmentEnabled ?? false,
       richTextRenderingEnabled: data.richTextRenderingEnabled ?? false,
       feishuSessionMirror: data.feishuSessionMirror ?? { mode: 'off' },
+      mcpServer: normalizePromaMcpServerConfig(data.mcpServer),
       visionRelay: data.visionRelay ?? { enabled: false },
       windowsShellPreference: settings.windowsShellPreference ?? 'auto',
       lastWindowsTerminalProfile: process.platform === 'win32'
@@ -101,6 +104,7 @@ export function getSettings(): AppSettings {
       longTextPasteAsAttachmentEnabled: false,
       richTextRenderingEnabled: false,
       feishuSessionMirror: { mode: 'off' },
+      mcpServer: normalizePromaMcpServerConfig(undefined),
       visionRelay: { enabled: false },
       windowsShellPreference: 'auto',
       agentThinking: { type: 'adaptive' },
@@ -127,6 +131,9 @@ export function updateSettings(updates: Partial<AppSettings>): AppSettings {
     productivityTools: updates.productivityTools === undefined
       ? normalizeProductivityToolsSettings(current.productivityTools)
       : normalizeProductivityToolsSettings({ ...current.productivityTools, ...updates.productivityTools }),
+    mcpServer: updates.mcpServer === undefined
+      ? normalizePromaMcpServerConfig(current.mcpServer)
+      : normalizePromaMcpServerConfig({ ...current.mcpServer, ...updates.mcpServer }),
   }
   const filePath = getSettingsPath()
 

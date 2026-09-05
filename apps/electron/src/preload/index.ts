@@ -6,7 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, AGENT_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, SLACK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, TERMINAL_IPC_CHANNELS } from '@proma/shared'
+import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, MCP_SERVER_IPC_CHANNELS, AGENT_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, SLACK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, TERMINAL_IPC_CHANNELS } from '@proma/shared'
 import { USER_PROFILE_IPC_CHANNELS, SETTINGS_IPC_CHANNELS, SCRATCH_PAD_IPC_CHANNELS, APP_ICON_IPC_CHANNELS, DOCK_BADGE_IPC_CHANNELS, STORAGE_IPC_CHANNELS } from '../types'
 import type {
   RuntimeStatus,
@@ -346,6 +346,23 @@ export interface ElectronAPI {
 
   /** 订阅 Pi manual_code prompt 事件（等待用户粘贴回调 URL） */
   onCodexOAuthManualCodeRequested: (callback: (request: import('@proma/shared').CodexOAuthManualCodeRequest) => void) => () => void
+
+  // ===== PROMA MCP Server =====
+
+  /** 获取 MCP Server 运行状态 */
+  getMcpServerStatus: () => Promise<import('@proma/shared').PromaMcpServerStatus>
+
+  /** 启动 MCP Server */
+  startMcpServer: () => Promise<import('@proma/shared').PromaMcpServerStatus>
+
+  /** 停止 MCP Server */
+  stopMcpServer: () => Promise<import('@proma/shared').PromaMcpServerStatus>
+
+  /** 更新 MCP Server 配置（持久化 + 按需重启） */
+  updateMcpServerConfig: (config: import('@proma/shared').PromaMcpServerConfig) => Promise<import('@proma/shared').PromaMcpServerStatus>
+
+  /** 列出全部 MCP 工具与启用状态 */
+  listMcpServerTools: () => Promise<import('@proma/shared').PromaMcpToolSummary[]>
 
   /** 订阅登录期间，接收 Codex device code 与授权链接。返回取消订阅函数。 */
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => () => void
@@ -1632,6 +1649,28 @@ const electronAPI: ElectronAPI = {
     const listener = (_event: Electron.IpcRendererEvent, request: import('@proma/shared').CodexOAuthManualCodeRequest) => callback(request)
     ipcRenderer.on(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_CODE_REQUESTED, listener)
     return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_CODE_REQUESTED, listener)
+  },
+
+  // ===== PROMA MCP Server =====
+
+  getMcpServerStatus: () => {
+    return ipcRenderer.invoke(MCP_SERVER_IPC_CHANNELS.GET_STATUS)
+  },
+
+  startMcpServer: () => {
+    return ipcRenderer.invoke(MCP_SERVER_IPC_CHANNELS.START)
+  },
+
+  stopMcpServer: () => {
+    return ipcRenderer.invoke(MCP_SERVER_IPC_CHANNELS.STOP)
+  },
+
+  updateMcpServerConfig: (config: import('@proma/shared').PromaMcpServerConfig) => {
+    return ipcRenderer.invoke(MCP_SERVER_IPC_CHANNELS.UPDATE_CONFIG, config)
+  },
+
+  listMcpServerTools: () => {
+    return ipcRenderer.invoke(MCP_SERVER_IPC_CHANNELS.LIST_TOOLS)
   },
 
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => {

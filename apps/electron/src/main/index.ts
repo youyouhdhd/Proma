@@ -52,6 +52,8 @@ function registerProtocolsAndHandlers(): void {
 
 
 import { getSettings, updateSettings } from './lib/settings-service'
+import { promaMcpServerService } from './lib/mcp-server/service'
+import { normalizePromaMcpServerConfig } from './lib/mcp-server/config'
 import { handlePromaFileRequest } from './lib/local-file-protocol'
 
 // 处理 EPIPE 错误：当 stdout/stderr 管道被关闭时（如 electronmon 重启），忽略写入错误
@@ -228,6 +230,18 @@ registerBridge({
   needsRecovery: () => wechatBridge.getStatus().status === 'error',
   start: () => wechatBridge.start(),
   stop: () => wechatBridge.stop(),
+})
+
+// MCP Server：把本地工具能力暴露给外部 MCP Client（如 ChatGPT Web）
+registerBridge({
+  name: 'MCP Server',
+  shouldAutoStart: () => normalizePromaMcpServerConfig(getSettings().mcpServer).enabled,
+  start: async () => {
+    await promaMcpServerService.startFromSettings()
+  },
+  stop: () => {
+    void promaMcpServerService.stop()
+  },
 })
 
 async function recoverEnabledFeishuBots(): Promise<void> {

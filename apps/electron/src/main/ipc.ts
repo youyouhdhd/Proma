@@ -10,7 +10,7 @@ import { existsSync, realpathSync, readFileSync, writeFileSync, mkdirSync, statS
 import { realpath, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
-import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, AGENT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, SLACK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, PLANNING_CONFLICT_ERROR, MAX_ATTACHMENT_SIZE, isPromaPermissionMode, normalizePathForCompare, removeMcpServerFromConfig, TERMINAL_IPC_CHANNELS } from '@proma/shared'
+import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, MCP_SERVER_IPC_CHANNELS, AGENT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, SLACK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, PLANNING_CONFLICT_ERROR, MAX_ATTACHMENT_SIZE, isPromaPermissionMode, normalizePathForCompare, removeMcpServerFromConfig, TERMINAL_IPC_CHANNELS } from '@proma/shared'
 import { USER_PROFILE_IPC_CHANNELS, SETTINGS_IPC_CHANNELS, SCRATCH_PAD_IPC_CHANNELS, QUICK_TASK_IPC_CHANNELS, VOICE_DICTATION_IPC_CHANNELS, APP_ICON_IPC_CHANNELS, DOCK_BADGE_IPC_CHANNELS, STORAGE_IPC_CHANNELS, WINDOWS_AGENT_ISLAND_IPC_CHANNELS, TRAY_IPC_CHANNELS } from '../types'
 import type {
   QuickTaskSubmitInput,
@@ -214,6 +214,7 @@ import {
 import { sendMessage, stopGeneration, generateTitle } from './lib/chat-service'
 import { sendQuickAskMessage, stopQuickAsk, clearQuickAsk, destroyQuickAsk } from './lib/quick-ask-service'
 import { createQuickAskSession } from './lib/quick-ask-store'
+import { promaMcpServerService } from './lib/mcp-server/service'
 import {
   saveAttachment,
   readAttachmentAsBase64,
@@ -1774,15 +1775,59 @@ export function registerIpcHandlers(): void {
     }
   )
 
-  // 渲染进程提交手动授权回调 URL（首次生效，重复提交忽略）
+   // 渲染进程提交手动授权回调 URL（首次生效，重复提交忽略）
+   ipcMain.handle(
+     CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK,
+     (_, callbackUrl: string): import('@proma/shared').CodexOAuthSubmitCallbackResult => {
+       if (typeof callbackUrl !== 'string' || callbackUrl.trim().length === 0) {
+         return { accepted: false }
+       }
+       // 不记录 callbackUrl（含 authorization code）
+       return submitCodexOAuthCallbackUrl(callbackUrl.trim())
+     }
+   )
+
+  // ===== PROMA MCP Server（本地能力服务器，供外部 MCP Client 调用） =====
+
+  // 获取运行状态
   ipcMain.handle(
-    CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK,
-    (_, callbackUrl: string): import('@proma/shared').CodexOAuthSubmitCallbackResult => {
-      if (typeof callbackUrl !== 'string' || callbackUrl.trim().length === 0) {
-        return { accepted: false }
-      }
-      // 不记录 callbackUrl（含 authorization code）
-      return submitCodexOAuthCallbackUrl(callbackUrl.trim())
+    MCP_SERVER_IPC_CHANNELS.GET_STATUS,
+    async (): Promise<import('@proma/shared').PromaMcpServerStatus> => {
+      return promaMcpServerService.getStatus()
+    }
+  )
+
+  // 启动（按当前设置；绑定工作区缺失等错误原样抛给渲染层展示）
+  ipcMain.handle(
+    MCP_SERVER_IPC_CHANNELS.START,
+    async (): Promise<import('@proma/shared').PromaMcpServerStatus> => {
+      return promaMcpServerService.startFromSettings()
+    }
+  )
+
+  // 停止
+  ipcMain.handle(
+    MCP_SERVER_IPC_CHANNELS.STOP,
+    async (): Promise<import('@proma/shared').PromaMcpServerStatus> => {
+      await promaMcpServerService.stop()
+      return promaMcpServerService.getStatus()
+    }
+  )
+
+  // 更新配置：持久化到 settings.json 并按需启动/停止/重启
+  ipcMain.handle(
+    MCP_SERVER_IPC_CHANNELS.UPDATE_CONFIG,
+    async (_, config: import('@proma/shared').PromaMcpServerConfig): Promise<import('@proma/shared').PromaMcpServerStatus> => {
+      updateSettings({ mcpServer: config })
+      return promaMcpServerService.applyConfig(config)
+    }
+  )
+
+  // 列出全部工具与当前启用状态
+  ipcMain.handle(
+    MCP_SERVER_IPC_CHANNELS.LIST_TOOLS,
+    async (): Promise<import('@proma/shared').PromaMcpToolSummary[]> => {
+      return promaMcpServerService.listTools()
     }
   )
 

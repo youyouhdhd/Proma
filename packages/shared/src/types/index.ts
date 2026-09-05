@@ -24,6 +24,9 @@ export * from './chat'
 // QuickAsk 临时提问浮窗
 export * from './quick-ask'
 
+// MCP Server（本地能力服务器）
+export * from './mcp-server'
+
 // Agent 相关类型
 export * from './agent'
 export * from './browser'

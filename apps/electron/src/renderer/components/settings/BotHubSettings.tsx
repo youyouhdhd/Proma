@@ -17,6 +17,7 @@ import { FeishuSettings } from './FeishuSettings'
 import { SlackSettings } from './SlackSettings'
 import { DingTalkSettings } from './DingTalkSettings'
 import { WeChatSettings } from './WeChatSettings'
+import { McpServerSettings } from './McpServerSettings'
 import { BotDefaultSettings } from './BotDefaultSettings'
 import { PromaLogoSettings } from './PromaLogoSettings'
 import feishuLogo from '@/assets/bots/feishu.png'
@@ -27,7 +28,7 @@ import promaLogo from '@/assets/models/proma.png'
 
 // ===== 类型 =====
 
-type BotPlatformId = 'feishu' | 'slack' | 'dingtalk' | 'wechat' | 'defaults' | 'logos'
+type BotPlatformId = 'feishu' | 'slack' | 'dingtalk' | 'wechat' | 'mcp-server' | 'defaults' | 'logos'
 
 interface BotPlatformDef {
   id: BotPlatformId
@@ -68,6 +69,13 @@ const PLATFORMS: readonly BotPlatformDef[] = [
     iconBgClass: 'bg-orange-500/15',
   },
   {
+    id: 'mcp-server',
+    name: 'MCP Server',
+    iconChar: '⇄',
+    iconBgClass: 'bg-cyan-500/15',
+    iconTextClass: 'text-cyan-600 dark:text-cyan-400',
+  },
+  {
     id: 'defaults',
     name: '用法',
     iconChar: '⚙',
@@ -99,7 +107,7 @@ function PlatformStatusDot({ platformId }: { platformId: BotPlatformId }): React
   const slackBotStates = useAtomValue(slackBotStatesAtom)
   const wechatState = useAtomValue(wechatBridgeStateAtom)
 
-  if (platformId === 'defaults' || platformId === 'logos') return null
+  if (platformId === 'defaults' || platformId === 'logos' || platformId === 'mcp-server') return null
 
   const statusMap: Record<string, string> = {
     feishu: getPlatformStatus(feishuBotStates),
@@ -181,6 +189,8 @@ function renderPlatformPanel(id: BotPlatformId): React.ReactElement {
       return <DingTalkSettings />
     case 'wechat':
       return <WeChatSettings />
+    case 'mcp-server':
+      return <McpServerSettings />
     case 'defaults':
       return <BotDefaultSettings />
     case 'logos':
