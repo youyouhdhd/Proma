@@ -44,6 +44,7 @@ import {
   useConversationContextLength,
   useConversationThinkingEnabled,
   useConversationReasoningLevel,
+  useConversationThinkingLevel,
   useConversationPromptId,
 } from '@/hooks/useConversationSettings'
 import { registerPendingTitle } from '@/hooks/useGlobalChatListeners'
@@ -115,6 +116,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
   const [contextLength] = useConversationContextLength()
   const [thinkingEnabled] = useConversationThinkingEnabled()
   const [reasoningLevel] = useConversationReasoningLevel()
+  const [thinkingLevel] = useConversationThinkingLevel()
   const [conversationPromptId] = useConversationPromptId()
 
   // ===== 全局 atoms（Map 结构，按 conversationId 读取） =====
@@ -373,6 +375,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
       attachments: savedAttachments.length > 0 ? savedAttachments : undefined,
       thinkingEnabled: thinkingEnabled || undefined,
       reasoningLevel: requestReasoningLevel,
+      thinkingLevel: thinkingEnabled ? thinkingLevel : undefined,
       systemMessage: resolveSystemMessage(conversationPromptId, promptConfig, userProfile.userName),
       enabledToolIds: activeToolIds.length > 0 ? activeToolIds : undefined,
     }
@@ -429,6 +432,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
     thinkingEnabled,
     reasoningLevel,
     channels,
+    thinkingLevel,
     conversationPromptId,
     promptConfig,
     userProfile.userName,

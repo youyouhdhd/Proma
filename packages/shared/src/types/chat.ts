@@ -237,6 +237,8 @@ export interface ChatSendInput {
   thinkingEnabled?: boolean
   /** 当前对话选择的模型推理档位。 */
   reasoningLevel?: AgentThinkingLevel
+  /** 用户选择的思考深度；具体模型会在 provider adapter 内安全归一化。 */
+  thinkingLevel?: AgentThinkingLevel
   /** 本次请求启用的工具 ID 列表（由前端工具选择器决定） */
   enabledToolIds?: string[]
 }
@@ -427,12 +429,6 @@ export const CHAT_IPC_CHANNELS = {
   SEARCH_MESSAGES: 'chat:search-messages',
   /** 搜索当前对话的完整消息历史（仅返回命中元数据） */
   SEARCH_SESSION_MESSAGES: 'chat:search-session-messages',
-
-  // 教程
-  /** 获取教程内容 */
-  GET_TUTORIAL_CONTENT: 'chat:get-tutorial-content',
-  /** 创建欢迎对话（含教程附件） */
-  CREATE_WELCOME_CONVERSATION: 'chat:create-welcome-conversation',
 
   // 流式事件（主进程 → 渲染进程推送）
   /** 内容片段 */

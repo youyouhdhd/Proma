@@ -13,7 +13,7 @@
 import { atom } from 'jotai'
 import type { TabType } from './tab-atoms'
 
-export type SettingsTab = 'general' | 'channels' | 'vision-relay' | 'proxy' | 'appearance' | 'about' | 'onboarding' | 'prompts' | 'tools' | 'bots' | 'tutorial' | 'shortcuts' | 'voice-input' | 'migration' | 'storage'
+export type SettingsTab = 'general' | 'channels' | 'vision-relay' | 'proxy' | 'appearance' | 'about' | 'onboarding' | 'prompts' | 'tools' | 'bots' | 'shortcuts' | 'voice-input' | 'migration' | 'storage'
 export type ToolSettingsFocus = 'web-search' | 'nano-banana' | 'custom-tools'
 
 /** 当前设置标签页（不持久化，每次打开设置默认显示渠道） */
@@ -39,5 +39,7 @@ export interface SettingsSessionNavigation {
   type: TabType
   sessionId: string
   title: string
+  /** 导航经设置脏表单确认并真正执行后提交的调用方 intent。 */
+  onOpened?: () => void
 }
 export const settingsPendingSessionNavigationAtom = atom<SettingsSessionNavigation | null>(null)
