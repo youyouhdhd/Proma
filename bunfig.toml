@@ -1,0 +1,8 @@
+# Bun 安装策略
+#
+# linker 固定为 hoisted：仓库的构建脚本（prepare-node-pty、build-cli 等）
+# 按传统 hoisted 布局解析依赖；Bun 1.4 起对 workspace 默认改用 isolated
+# 布局，会使 electron 等包的解析路径变化并导致打包失败。固定 hoisted
+# 保证任何 bun 版本、任何机器上安装布局一致。
+[install]
+linker = "hoisted"

@@ -1,6 +1,6 @@
 {
   "name": "proma",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Proma，为专业用户设计的 Agent",
   "type": "module",
   "private": true,
@@ -46,5 +46,8 @@
   "patchedDependencies": {
     "@earendil-works/pi-ai@0.84.4": "patches/@earendil-works%2Fpi-ai@0.84.4.patch",
     "node-pty@1.1.0": "patches/node-pty@1.1.0.patch"
-  }
+  },
+  "trustedDependencies": [
+    "electron"
+  ]
 }

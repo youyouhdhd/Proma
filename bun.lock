@@ -36,7 +36,7 @@
     },
     "apps/electron": {
       "name": "@proma/electron",
-      "version": "0.19.23",
+      "version": "0.19.27",
       "dependencies": {
         "@codemirror/language": "^6.12.4",
         "@codemirror/state": "^6.7.1",
@@ -163,7 +163,7 @@
     },
     "packages/core": {
       "name": "@proma/core",
-      "version": "0.2.19",
+      "version": "0.2.20",
       "dependencies": {
         "@proma/shared": "workspace:*",
         "highlight.js": "^11.11.1",
@@ -190,7 +190,7 @@
     },
     "packages/shared": {
       "name": "@proma/shared",
-      "version": "0.1.68",
+      "version": "0.1.69",
       "devDependencies": {
         "typescript": "^5.0.0",
       },
@@ -215,6 +215,9 @@
       },
     },
   },
+  "trustedDependencies": [
+    "electron",
+  ],
   "patchedDependencies": {
     "@earendil-works/pi-ai@0.84.4": "patches/@earendil-works%2Fpi-ai@0.84.4.patch",
     "node-pty@1.1.0": "patches/node-pty@1.1.0.patch",

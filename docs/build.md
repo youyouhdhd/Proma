@@ -25,6 +25,8 @@ Proma 是 Bun workspace，桌面应用位于 `apps/electron`。根目录命令�
 
 标准 Windows 打包会验证并使用 `node-pty` 随包提供的 N-API 预编译产物，不要求本机安装完整 C++ 工具链。只有显式执行源码重编译，或预编译缺失/无法被 Electron 加载时，才需要 Visual Studio 2022 的 Desktop development with C++、Windows SDK 和 C++ Spectre-mitigated libraries（x86/x64）。
 
+仓库根目录的 `bunfig.toml` 把安装布局固定为 hoisted。Bun 1.4 起对 workspace 默认改用 isolated 布局，会让 `prepare:node-pty` 等脚本的依赖解析路径变化；不要删除该文件，也不要在安装时改用 isolated linker。
+
 确认工具链：
 
 ```powershell
@@ -37,7 +39,20 @@ git --version
 
 ## 标准 Windows 构建
 
-在仓库根目录执行：
+日常最常用的入口是一键脚本（在仓库根目录执行）：
+
+```powershell
+# 一键构建安装包（含 typecheck + test）
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1
+
+# 跳过检查快速打包
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1 -SkipCheck
+
+# 构建成功后推送 origin main
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1 -Push
+```
+
+脚本内部按下方标准流程顺序执行，产物为 `apps/electron/out/Proma Setup <版本>.exe`（NSIS 安装程序，x64）。手动执行各步骤时，在仓库根目录执行：
 
 ```powershell
 bun install --frozen-lockfile
@@ -55,6 +70,8 @@ bun run --filter='@proma/electron' dist:win
 5. 把 Pi runtime、`pdfjs-dist`、`sharp` 和 `node-pty` 的运行时依赖闭包同步到 `apps/electron/node_modules`。
 6. 用 `prepare:node-pty` 在 Electron 中实际启动 PTY：Windows 预编译验证通过则直接使用；否则回退 `electron-rebuild`。macOS/Linux 保持源码重编译。
 7. 用 electron-builder 生成未安装目录和 NSIS 安装包。
+
+一键脚本（`scripts/build-win.ps1`）在安装依赖后还会自检 Electron 二进制（`node_modules/electron/dist/electron.exe`），缺失时自动执行 `electron/install.js` 补齐。Bun 的依赖信任策略默认不运行 postinstall，根 `package.json` 的 `trustedDependencies` 已包含 `electron`；若二进制仍缺失，检查网络或设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。
 
 成功后检查：
 

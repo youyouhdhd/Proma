@@ -31,7 +31,29 @@ function Invoke-Step {
 
 Write-Host "Proma Windows 构建开始：$RepoRoot" -ForegroundColor Green
 
-Invoke-Step '安装依赖（bun install）' { bun install }
+Invoke-Step '安装依赖（bun install，hoisted 布局）' { bun install --linker hoisted }
+
+# Electron 的二进制由 postinstall 下载；Bun 信任策略或离线缓存异常时可能缺失，
+# 这里自愈一次，避免后续 prepare:node-pty 与打包在深层才报错。
+Invoke-Step '校验 Electron 二进制' {
+    $electronExe = Join-Path $RepoRoot 'node_modules/electron/dist/electron.exe'
+    if (Test-Path $electronExe) {
+        Write-Host 'Electron 二进制已就绪'
+        $global:LASTEXITCODE = 0
+        return
+    }
+    Write-Host 'Electron 二进制缺失，执行 postinstall 下载…'
+    $installScript = Join-Path $RepoRoot 'node_modules/electron/install.js'
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        & node $installScript
+    } else {
+        & bun $installScript
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'Electron 二进制下载失败：请检查网络或设置 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/' -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+}
 
 if (-not $SkipCheck) {
     Invoke-Step '全仓类型检查' { bun run typecheck }
