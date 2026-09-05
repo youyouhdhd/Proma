@@ -102,6 +102,7 @@ git fetch upstream --prune
 | 修改 | `README.md`、`README.en.md`、根 `package.json`、`apps/electron/package.json`、`packages/core/package.json`、`bun.lock` | 版本与文档元数据 |
 | 修改 | `apps/electron/src/main/lib/feishu-bridge.ts`、`apps/electron/src/main/lib/feishu/card-renderer-v2.ts`；新增根 `bunfig.toml` | 飞书卡片显示渠道名 + 安装布局固定（2026-09-05，待提交） |
 | 修改 | `apps/electron/electron-builder.yml`（publish 不硬编码 owner，随检出仓库解析）；新增 `release-notes/v1.0.0.md` | 独立版本号与 CI 发布目标修正（2026-09-06） |
+| 新增 | `packages/shared/src/types/mcp-server.ts`、`apps/electron/src/main/lib/local-tools/`（含测试）、`apps/electron/src/main/lib/mcp-server/`（含集成测试）、`apps/electron/src/renderer/components/settings/McpServerSettings.tsx`、`release-notes/v1.1.0.md`；修改 `AppSettings`、settings-service、ipc.ts、preload、BotHubSettings、main/index.ts | ChatGPT Web MCP Server + 本地工具注册表（2026-09-06，待提交） |
 
 注意：`patches/` 目录（`@earendil-works/pi-ai@0.84.4.patch` 与 `node-pty@1.1.0.patch`）属于**上游自带**并通过根 `package.json` 的 `patchedDependencies` 生效，本 Fork 未做改动；同步时随上游自然更新，不要在 Fork 中单独修改这两个补丁。
 
