@@ -1,7 +1,7 @@
 # Proma Fork 维护与上游同步指南
 
-记录版本：0.1.4
-最后核对：2026-08-30
+记录版本：0.1.6
+最后核对：2026-09-05
 适用对象：维护 `youyouhdhd/Proma` Fork 的开发者
 
 本文的目标是让维护者在 `proma-ai/Proma` 发布新版本后，能够先取得上游更新，再有边界地重放本 Fork 的定制功能。它记录当前仓库的真实分叉状态、定制提交和已知冲突区域；不把上游代码复制成第二份，也不建议直接在 `main` 上试错。
@@ -49,6 +49,54 @@ git fetch upstream --prune
 - `--apply --verify` 在无冲突合并后自动执行类型检查、全量测试和 Electron 构建；冲突或验证失败都会保留同步分支，不自动推送。
 - 当前 `main` 已经包含定制实现，未来从 `main` 合并上游时不需要重复 cherry-pick `0a19e264`；该提交仅作为从零恢复定制的历史规格。
 
+### 2026-09-05 状态快照
+
+- 本 Fork 的 `main`：`358c42e2`（应用版本 `0.19.25`），工作区干净，与 `origin/main` 同步。
+- 最近一次上游合并：`8c1c8dbd` 合入官方 v0.19.23；随后以 `c037a122` 发布 v0.19.24。
+- 上游 `upstream/main`：`e411c38f`（官方 v0.19.26），相对本 Fork 领先 11 个提交，**待下一次同步**。
+- 本 Fork 相对上游独有 10 个已提交（含 2 个合并/发布提交与 8 个功能/修复/文档提交），工作区另有待提交的未标注代码块语言误判修复与 QuickAsk 临时提问功能，完整清单见下文「本 Fork 相对上游的全部独有提交」。
+- 相对上游的完整文件差异已固化到本文「Fork 相对上游的完整文件差异」一节，同步前可用 `git diff --name-status upstream/main...HEAD` 重新核对。
+
+#### 本 Fork 相对上游的全部独有提交（截至 2026-09-05）
+
+| 提交 | 说明 | 性质 |
+| --- | --- | --- |
+| `57e18e30` | v0.18.3 发布准备：构建指南、README 版本修正、Windows 测试隔离修正 | 维护 |
+| `c39eb693` | 建立本维护文档，记录 fork 定制与同步流程 | 文档 |
+| `d8dd43ed` | 合并上游 v0.19.5 | 合并 |
+| `60d9f9d3` | 自建模型推理档位适配上游 v0.19.5 新架构（行为规格源自 `0a19e264`） | 定制功能 |
+| `96cba041` | Windows 打包前用 Electron 实际启动 PTY 验证 node-pty 预编译产物 | 构建修正 |
+| `043adcf1` | `sync:upstream` / `verify:upstream` 自动化同步脚本 | 维护工具 |
+| `92c24992` | llama.cpp 工具语法边界修复（详见下文定制记录） | 定制修复 |
+| `8c1c8dbd` | 合并上游 v0.19.23 | 合并 |
+| `c037a122` | 发布 v0.19.24 | 发布 |
+| `358c42e2` | 新增 `scripts/build-win.ps1` 一键构建 Windows 安装包 | 构建工具 |
+
+### Fork 相对上游的完整文件差异（2026-09-05）
+
+以下清单来自 `git diff --name-status upstream/main...HEAD`，是同步上游时最需要人工复核的范围。上游合并后应重新执行该命令并对照本表，确认定制没有被覆盖、也没有把上游新文件误删：
+
+| 类型 | 文件 | 归属 |
+| --- | --- | --- |
+| 新增 | `docs/build.md`、`docs/fork-maintenance.md`、`docs/llama-cpp-tool-grammar-limits.md`、`docs/qwen-lite-502-upstream-diagnosis.md` | Fork 文档 |
+| 新增 | `scripts/build-win.ps1`、`scripts/sync-upstream.ts`、`scripts/sync-upstream.test.ts` | Fork 维护工具 |
+| 新增 | `apps/electron/scripts/prepare-node-pty.ts`（含测试） | Windows node-pty 预编译验证 |
+| 新增 | `apps/electron/src/main/lib/ask-user-tool-schema.ts`（含测试） | llama.cpp 语法边界修复 |
+| 新增 | `packages/core/src/utils/grammar-bounds.ts`（含测试）、`packages/core/src/providers/openai-adapter.test.ts` | llama.cpp 语法边界修复 |
+| 新增 | `packages/core/src/highlight/language-detector.test.ts`；修改 `packages/core/src/highlight/language-detector.ts` | 未标注代码块语言误判修复（2026-09-05） |
+| 新增 | `packages/shared/src/types/quick-ask.ts`、`apps/electron/src/main/lib/quick-ask-store.ts`（含测试）、`apps/electron/src/main/lib/quick-ask-service.ts`、`apps/electron/src/renderer/atoms/quick-ask-atoms.ts`、`apps/electron/src/renderer/components/quick-ask/`、`apps/electron/src/renderer/lib/quick-ask-prefill.ts`（含测试）；修改 `ipc.ts`、`preload/index.ts`、`AppShell.tsx`、`ChatHeader/AgentHeader/ChatView/ChatMessages/ChatMessageItem`、`AgentView/AgentMessages/SDKMessageRenderer` | QuickAsk 临时提问浮窗（2026-09-05，待提交） |
+| 新增 | `packages/shared/src/types/reasoning-profile.test.ts`、`apps/electron/src/renderer/lib/channel-model-reasoning.ts`（含测试）、`apps/electron/src/main/lib/adapters/pi-model-registry-reasoning.test.ts` | 自建模型推理档位 |
+| 修改 | `packages/shared/src/types/reasoning-profile.ts`、`channel.ts`、`chat.ts` | 自建模型推理档位 |
+| 修改 | `packages/core/src/providers/openai-adapter.ts`、`openai-responses-adapter.ts`（含测试）、`types.ts` | 推理档位 + 语法边界告警 |
+| 修改 | `apps/electron/src/main/lib/adapters/pi-model-registry.ts`、`pi-agent-adapter.ts`、`pi-builtin-tools.ts` | 推理档位 + 语法边界修复 |
+| 修改 | `apps/electron/src/main/lib/agent-orchestrator.ts`、`agent-collaboration-tools.ts`、`chat-service.ts`、`ipc.ts`、`planning-manager.test.ts` | 定制功能主进程 |
+| 修改 | `apps/electron/src/preload/index.ts` | IPC bridge |
+| 修改 | `apps/electron/src/renderer/atoms/chat-atoms.ts`、`components/agent/AgentView.tsx`、`app-shell/LeftSidebar.tsx`、`chat/ChatInput.tsx`、`chat/ChatView.tsx`、`settings/ChannelForm.tsx`、`hooks/useConversationSettings.ts`、`main.tsx` | 定制功能 UI |
+| 修改 | `README.md`、`README.en.md`、根 `package.json`、`apps/electron/package.json`、`packages/core/package.json`、`bun.lock` | 版本与文档元数据 |
+| 修改 | `apps/electron/src/main/lib/feishu-bridge.ts`、`apps/electron/src/main/lib/feishu/card-renderer-v2.ts`；新增根 `bunfig.toml` | 飞书卡片显示渠道名 + 安装布局固定（2026-09-05，待提交） |
+
+注意：`patches/` 目录（`@earendil-works/pi-ai@0.84.4.patch` 与 `node-pty@1.1.0.patch`）属于**上游自带**并通过根 `package.json` 的 `patchedDependencies` 生效，本 Fork 未做改动；同步时随上游自然更新，不要在 Fork 中单独修改这两个补丁。
+
 ## 本 Fork 的定制记录
 
 ### 定制提交：自建模型推理档位
@@ -94,6 +142,89 @@ git show 0a19e264 -- apps/electron packages
 提交说明：`chore: prepare Proma v0.18.3 release`
 
 该提交包含构建指南、README 版本修正、Windows 测试隔离修正和版本元数据更新。它不是上游产品定制功能；同步上游时应保留文档和测试修正，但应用版本号以待发布的上游/本地版本策略为准，不要把 `0.18.3` 强行覆盖上游的新版本。
+
+### 定制提交：llama.cpp 工具语法边界修复
+
+提交：`92c24992c3b00b2c8a1eccf149108297a34b9bad`（应用 `0.19.9` / `@proma/core 0.2.19` 起）
+
+行为边界：
+
+- `BrowserAct.waitFor.value` 等嵌套字符串的 `maxLength` 从 2000 降到 1024，规避 llama.cpp `char{1,2000}` 重复规则上限导致的 400。
+- 新增 `packages/core/src/utils/grammar-bounds.ts`：递归扫描工具 JSON Schema，找出「嵌套 + maxLength ≥ 2000」的危险字符串；`openai-adapter` 序列化工具时命中即 `console.warn`，不 silently 改写。
+- `AskUserQuestion` / collaboration 的 `answers` 从无约束 `Record` 改为有界对象数组（`ask-user-tool-schema.ts`），避免网关剥离 `additionalProperties` 后展开成递归 GBNF。
+
+完整排查过程与「以后新增/修改工具的检查清单」见 [llama.cpp 工具语法限制排查记录](./llama-cpp-tool-grammar-limits.md)；502 连带失败的根因分析见 [qwen-lite 502 上游诊断](./qwen-lite-502-upstream-diagnosis.md)。同步上游时若官方调整了内置工具 schema，需按该检查清单复核嵌套字符串长度。
+
+### 定制提交：Windows 一键构建脚本
+
+提交：`358c42e2da685e22a0ad9d02f7338bd29c70a856`（应用 `0.19.25` 起）
+
+- `scripts/build-win.ps1`：`bun install` → typecheck/test（`-SkipCheck` 可跳过）→ 全量构建 → electron-builder `--win`，产物为 `apps/electron/out/Proma Setup <版本>.exe`。
+- `-Push` 参数在构建成功后自动推送 `origin main`；脚本以 UTF-8 BOM 保存，兼容 Windows PowerShell 5.1 中文输出。
+
+用法见下文「构建速查」。
+
+### 定制提交：未标注代码块语言误判修复
+
+提交：待提交（2026-09-05，`@proma/core 0.2.20` 起）
+
+行为边界：
+
+- 现象：模型在未标注语言的 fenced code block 中输出文件清单（每行一个带斜杠的路径）时，`detectLanguage` 的 highlight.js 自动检测会将其误判为 swift / css / bash 等语言（如 5 行 `apps/electron/...` 路径列表以 relevance 11 命中 swift），代码块顶栏显示错误语言标签、内容按错误语法高亮。
+- 修复：`detectLanguage` 在自动检测前先识别「整块都是路径」（每个非空行均为无空白的单个路径 token），命中直接回退 `text`；带空格的命令、注释、真实代码不受影响，仍走自动检测。
+- 回归测试：`packages/core/src/highlight/language-detector.test.ts`，覆盖 swift / css 两个误判回归场景与真实代码仍可识别的正向用例。
+
+### 定制提交：QuickAsk 临时提问浮窗
+
+提交：待提交（2026-09-05，应用 `0.19.27` / `@proma/shared 0.1.69` 起）
+
+行为边界：
+
+- Chat 与 Agent 头部新增「临时提问」按钮；assistant 回复的操作栏新增同名入口，点击会把该回复预填到浮窗输入框（超过 6000 字符截断）。
+- 浮窗支持独立选择渠道、模型与推理档位（模型选择器排除 `openai-codex` / `xai`，与 Chat 主流程的 OAuth 限制一致），可拖动、可缩放，悬浮于任意视图之上。
+- 对话完全独立：主进程仅以 `quick-ask-store.ts` 保存内存消息，不写 JSONL 与 conversations.json 索引，不进入 Agent / Chat 任何会话；关闭浮窗即销毁，「清空」仅清消息。
+- 流式事件走独立的 `QUICK_ASK_IPC_CHANNELS` 通道族，不触碰 Chat 全局流状态；不支持工具与附件，规避工作区副作用。
+- 同步上游时注意四层契约需整体保留：`packages/shared/src/types/quick-ask.ts` → `ipc.ts` handler → `preload/index.ts` bridge → `QuickAskPanel.tsx`。
+
+## 构建速查（Windows）
+
+日常开发与打包的完整细节见 [构建指南](./build.md)。最常用的入口：
+
+~~~powershell
+# 一键构建安装包（含 typecheck + test）
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1
+
+# 跳过检查快速打包
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1 -SkipCheck
+
+# 构建成功后推送 origin main
+powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1 -Push
+~~~
+
+等价的标准流程（脚本内部即按此顺序执行）：
+
+~~~powershell
+bun install --frozen-lockfile
+bun run typecheck
+bun test
+bun run --filter='@proma/electron' dist:win
+~~~
+
+要点：
+
+- Windows 打包默认验证并使用 node-pty 官方预编译 N-API 产物（`prepare:node-pty` 会在 Electron 中实际启动一次 PTY）；只有预编译缺失时才回退源码重编译，那时才需要 Visual Studio 2022 C++ 工具链与 Spectre 库。
+- 源码重编译报 `MSB8040`（缺 Spectre 库）时，安装 VS 组件 Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre，不要通过删 gyp 安全选项绕过。
+- `bun` 找不到时先重启终端确认 PATH；`build-cli` 依赖 PATH 中的 Bun。
+- 根 `package.json` 的 `trustedDependencies` 含 `electron`：Bun 1.4 起默认不运行未信任依赖的 postinstall，缺这条会导致全新安装后 `node_modules/electron/dist` 二进制缺失，`prepare:node-pty` 与打包验证全部失败。
+- 根目录 `bunfig.toml` 把 linker 固定为 hoisted：Bun 1.4 对 workspace 默认 isolated，会让依赖解析路径漂移并破坏打包；一键脚本也显式传了 `--linker hoisted` 双保险。
+- 产物位于 `apps/electron/out/`，已被 `.gitignore` 忽略，不应提交。
+
+### 定制提交：飞书卡片显示渠道名
+
+提交：待提交（2026-09-05，应用 `0.19.28` 起）
+
+- 现象：飞书流式卡片底部只显示模型 ID；同一模型存在于多个渠道时无法分辨实际使用的渠道。
+- 修复：`FeishuBridge.resolveModelDisplay()` 按 binding > Bot 配置 > 应用设置解析「渠道名 / 模型名」，经 `RenderOptions.modelDisplay` 传入全部 5 个卡片渲染点（镜像卡、运行卡、增量卡、错误/中断终态卡）；解析失败回退原始 modelId。`/now` 命令本就显示渠道名，保持不变。
 
 ## 上游更新后的推荐流程
 
@@ -296,5 +427,9 @@ git show --stat 0a19e264
 ## 相关文件
 
 - [构建指南](./build.md)
+- [一键 Windows 构建脚本](../scripts/build-win.ps1)
+- [上游同步脚本](../scripts/sync-upstream.ts)（含 [测试](../scripts/sync-upstream.test.ts)）
+- [llama.cpp 工具语法限制排查记录](./llama-cpp-tool-grammar-limits.md)
+- [qwen-lite 502 上游诊断](./qwen-lite-502-upstream-diagnosis.md)
 - [根目录 AGENTS.md](../AGENTS.md)
 - [GitHub Actions 发布工作流](../.github/workflows/release.yml)
