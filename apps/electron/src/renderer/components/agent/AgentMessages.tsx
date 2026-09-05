@@ -231,6 +231,8 @@ interface AgentMessagesProps {
   onRestoreProjectRoot?: () => void
   onFork?: (upToMessageUuid: string) => void
   onRewind?: (assistantMessageUuid: string) => void
+  /** 临时提问：把 assistant 回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   onCreateTodo?: (text: string) => void
   onCompact?: () => void
   /** 将单条 Agent 历史选区写为当前 RichTextInput 的内联 mention。 */
@@ -607,6 +609,8 @@ interface AgentTranscriptHistoryProps {
   stoppedByUser?: boolean
   onFork?: (upToMessageUuid: string) => void
   onRewind?: (assistantMessageUuid: string) => void
+  /** 临时提问：把 assistant 回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   onAgentHistoryQuoteClick?: (quote: QuotedSelection) => void
   onCreateTodo?: (text: string) => void
   onRetry?: () => void
@@ -652,6 +656,7 @@ function areTranscriptRowsEqual(
     || previous.stoppedByUser !== next.stoppedByUser
     || previous.onFork !== next.onFork
     || previous.onRewind !== next.onRewind
+    || previous.onQuickAsk !== next.onQuickAsk
     || previous.onAgentHistoryQuoteClick !== next.onAgentHistoryQuoteClick
     || previous.onCreateTodo !== next.onCreateTodo
     || previous.onRetry !== next.onRetry
@@ -677,6 +682,7 @@ const AgentTranscriptRows = React.memo(function AgentTranscriptRows({
   stoppedByUser,
   onFork,
   onRewind,
+  onQuickAsk,
   onAgentHistoryQuoteClick,
   onCreateTodo,
   onRetry,
@@ -711,6 +717,7 @@ const AgentTranscriptRows = React.memo(function AgentTranscriptRows({
               basePath={sessionPath || undefined}
               onFork={shouldDisableActions ? undefined : onFork}
               onRewind={shouldDisableActions ? undefined : onRewind}
+              onQuickAsk={shouldDisableActions ? undefined : onQuickAsk}
               onAgentHistoryQuoteClick={onAgentHistoryQuoteClick}
               onCreateTodo={shouldDisableActions ? undefined : onCreateTodo}
               onRetry={shouldDisableActions ? undefined : onRetry}
@@ -746,6 +753,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
   stoppedByUser,
   onFork,
   onRewind,
+  onQuickAsk,
   onAgentHistoryQuoteClick,
   onCreateTodo,
   onRetry,
@@ -835,6 +843,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
         stoppedByUser={liveGroups.length === 0 ? stoppedByUser : undefined}
         onFork={onFork}
         onRewind={onRewind}
+        onQuickAsk={onQuickAsk}
         onAgentHistoryQuoteClick={onAgentHistoryQuoteClick}
         onCreateTodo={onCreateTodo}
         onRetry={onRetry}
@@ -856,6 +865,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
           stoppedByUser={stoppedByUser}
           onFork={onFork}
           onRewind={onRewind}
+          onQuickAsk={onQuickAsk}
           onAgentHistoryQuoteClick={onAgentHistoryQuoteClick}
           onCreateTodo={onCreateTodo}
           onRetry={onRetry}
@@ -883,6 +893,7 @@ export const AgentMessages = React.memo(function AgentMessages({
   onRestoreProjectRoot,
   onFork,
   onRewind,
+  onQuickAsk,
   onCreateTodo,
   onCompact,
   onAddHistoryQuote,
@@ -1204,6 +1215,7 @@ export const AgentMessages = React.memo(function AgentMessages({
                 stoppedByUser={stoppedByUser}
                 onFork={onFork}
                 onRewind={onRewind}
+                onQuickAsk={onQuickAsk}
                 onAgentHistoryQuoteClick={onAgentHistoryQuoteClick}
                 onCreateTodo={onCreateTodo}
                 onRetry={onRetry}

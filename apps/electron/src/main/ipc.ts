@@ -10,7 +10,7 @@ import { existsSync, realpathSync, readFileSync, writeFileSync, mkdirSync, statS
 import { realpath, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
-import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, AGENT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, PLANNING_CONFLICT_ERROR, MAX_ATTACHMENT_SIZE, isPromaPermissionMode, normalizePathForCompare, TERMINAL_IPC_CHANNELS } from '@proma/shared'
+import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, AGENT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, PLANNING_CONFLICT_ERROR, MAX_ATTACHMENT_SIZE, isPromaPermissionMode, normalizePathForCompare, TERMINAL_IPC_CHANNELS } from '@proma/shared'
 import { USER_PROFILE_IPC_CHANNELS, SETTINGS_IPC_CHANNELS, SCRATCH_PAD_IPC_CHANNELS, QUICK_TASK_IPC_CHANNELS, VOICE_DICTATION_IPC_CHANNELS, APP_ICON_IPC_CHANNELS, DOCK_BADGE_IPC_CHANNELS, STORAGE_IPC_CHANNELS, WINDOWS_AGENT_ISLAND_IPC_CHANNELS, TRAY_IPC_CHANNELS } from '../types'
 import type {
   QuickTaskSubmitInput,
@@ -42,6 +42,7 @@ import type {
   ChatMessage,
   ChatSendInput,
   GenerateTitleInput,
+  QuickAskSendInput,
   AttachmentSaveInput,
   AttachmentSaveResult,
   FileDialogResult,
@@ -210,6 +211,8 @@ import {
   searchConversationSessionMessages,
 } from './lib/conversation-manager'
 import { sendMessage, stopGeneration, generateTitle } from './lib/chat-service'
+import { sendQuickAskMessage, stopQuickAsk, clearQuickAsk, destroyQuickAsk } from './lib/quick-ask-service'
+import { createQuickAskSession } from './lib/quick-ask-store'
 import {
   saveAttachment,
   readAttachmentAsBase64,
@@ -1923,6 +1926,48 @@ export function registerIpcHandlers(): void {
     CHAT_IPC_CHANNELS.STOP_GENERATION,
     async (_, conversationId: string): Promise<void> => {
       stopGeneration(conversationId)
+    }
+  )
+
+  // ===== QuickAsk 临时提问浮窗（纯内存会话，独立于 Chat 全局流状态） =====
+
+  // 创建临时会话
+  ipcMain.handle(
+    QUICK_ASK_IPC_CHANNELS.CREATE_SESSION,
+    async (): Promise<{ conversationId: string }> => {
+      return { conversationId: createQuickAskSession() }
+    }
+  )
+
+  // 发送临时提问（通过 event.sender 推送流式事件）
+  ipcMain.handle(
+    QUICK_ASK_IPC_CHANNELS.SEND_MESSAGE,
+    async (event, input: QuickAskSendInput): Promise<boolean> => {
+      return sendQuickAskMessage(input, event.sender)
+    }
+  )
+
+  // 中止生成
+  ipcMain.handle(
+    QUICK_ASK_IPC_CHANNELS.STOP,
+    async (_, conversationId: string): Promise<void> => {
+      stopQuickAsk(conversationId)
+    }
+  )
+
+  // 清空临时会话消息
+  ipcMain.handle(
+    QUICK_ASK_IPC_CHANNELS.CLEAR,
+    async (_, conversationId: string): Promise<void> => {
+      clearQuickAsk(conversationId)
+    }
+  )
+
+  // 销毁临时会话（关闭浮窗时调用）
+  ipcMain.handle(
+    QUICK_ASK_IPC_CHANNELS.DESTROY,
+    async (_, conversationId: string): Promise<void> => {
+      destroyQuickAsk(conversationId)
     }
   )
 

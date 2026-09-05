@@ -170,6 +170,8 @@ interface ChatMessagesProps {
   onResendMessage?: (message: ChatMessage) => Promise<void>
   /** 开始原地编辑消息 */
   onStartInlineEdit?: (message: ChatMessage) => void
+  /** 临时提问：把 assistant 回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   /** 提交原地编辑 */
   onSubmitInlineEdit?: (message: ChatMessage, payload: InlineEditSubmitPayload) => Promise<void>
   /** 取消原地编辑 */
@@ -206,6 +208,7 @@ export function ChatMessages({
   onDeleteMessage,
   onResendMessage,
   onStartInlineEdit,
+  onQuickAsk,
   onSubmitInlineEdit,
   onCancelInlineEdit,
   inlineEditingMessageId,
@@ -425,6 +428,7 @@ export function ChatMessages({
                     onDeleteMessage={onDeleteMessage}
                     onResendMessage={onResendMessage}
                     onStartInlineEdit={onStartInlineEdit}
+                    onQuickAsk={onQuickAsk}
                     onSubmitInlineEdit={onSubmitInlineEdit}
                     onCancelInlineEdit={onCancelInlineEdit}
                     isInlineEditing={msg.id === inlineEditingMessageId}

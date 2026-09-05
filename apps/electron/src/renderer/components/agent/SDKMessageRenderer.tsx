@@ -12,7 +12,7 @@
  */
 
 import * as React from 'react'
-import { Bot, Loader2, AlertTriangle, FileText, FileImage, Download, Split, Undo2, RotateCw, Plus, Minimize2, Wrench, Settings, Cpu, ExternalLink, Quote, Clock, FolderInput, FolderPlus, ListTodo } from 'lucide-react'
+import { Bot, Loader2, AlertTriangle, FileText, FileImage, Download, Split, Undo2, RotateCw, Plus, Minimize2, Wrench, Settings, Cpu, ExternalLink, Quote, Clock, FolderInput, FolderPlus, ListTodo, MessagesSquare } from 'lucide-react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { cn } from '@/lib/utils'
 import { ImageLightbox, type LightboxImage } from '@/components/ui/image-lightbox'
@@ -374,6 +374,8 @@ export interface AssistantTurnRendererProps {
   onFork?: (upToMessageUuid: string) => void
   /** 回退回调（传入 assistant message uuid） */
   onRewind?: (assistantMessageUuid: string) => void
+  /** 临时提问：把本轮回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   /** 将本轮回复标记为 Todo */
   onCreateTodo?: (text: string) => void
   /** 错误重试回调（传入本轮开始前应删除的错误 UUID） */
@@ -392,7 +394,7 @@ export interface AssistantTurnRendererProps {
   sessionModelId?: string
 }
 
-export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onRewind, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, isStreaming, stoppedByUser, sessionModelId }: AssistantTurnRendererProps): React.ReactElement | null {
+export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onRewind, onQuickAsk, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, isStreaming, stoppedByUser, sessionModelId }: AssistantTurnRendererProps): React.ReactElement | null {
   const channels = useAtomValue(channelsAtom)
   // 收集所有 assistant 消息的内容块，保留 parent_tool_use_id 关联
   interface EnrichedBlock {
@@ -612,6 +614,11 @@ export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onR
             {onRewind && lastUuid && (
               <MessageAction tooltip="回退到此处" onClick={() => onRewind(lastUuid)}>
                 <Undo2 className="size-3.5" />
+              </MessageAction>
+            )}
+            {onQuickAsk && textContent && (
+              <MessageAction tooltip="临时提问（不影响会话上下文）" onClick={() => onQuickAsk(textContent)}>
+                <MessagesSquare className="size-3.5" />
               </MessageAction>
             )}
             {showStoppedBadge && (
@@ -1383,6 +1390,8 @@ export interface MessageGroupRendererProps {
   basePath?: string
   onFork?: (upToMessageUuid: string) => void
   onRewind?: (assistantMessageUuid: string) => void
+  /** 临时提问：把 assistant 回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   /** 已发送的 Agent 历史引用 chip 请求定位时的精确范围。 */
   onAgentHistoryQuoteClick?: (quote: QuotedSelection) => void
   /** 将 assistant 回复标记为 Todo */
@@ -1451,7 +1460,7 @@ export function getGroupId(group: MessageGroup): string {
 
 // getGroupPreview 已迁移至 @proma/session-core（本文件从该包 import 并 re-export）
 
-export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ group, allMessages, basePath, onFork, onRewind, onAgentHistoryQuoteClick, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, historyTurn, isStreaming, stoppedByUser, sessionModelId }: MessageGroupRendererProps): React.ReactElement | null {
+export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ group, allMessages, basePath, onFork, onRewind, onQuickAsk, onAgentHistoryQuoteClick, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, historyTurn, isStreaming, stoppedByUser, sessionModelId }: MessageGroupRendererProps): React.ReactElement | null {
   const groupId = getGroupId(group)
 
   if (group.type === 'user') {
@@ -1489,6 +1498,7 @@ export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ g
         basePath={basePath}
         onFork={onFork}
         onRewind={onRewind}
+        onQuickAsk={onQuickAsk}
         onCreateTodo={onCreateTodo}
         onRetry={onRetry}
         onRetryInNewSession={onRetryInNewSession}
@@ -1506,6 +1516,7 @@ export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ g
   && previous.basePath === next.basePath
   && previous.onFork === next.onFork
   && previous.onRewind === next.onRewind
+  && previous.onQuickAsk === next.onQuickAsk
   && previous.onAgentHistoryQuoteClick === next.onAgentHistoryQuoteClick
   && previous.onCreateTodo === next.onCreateTodo
   && previous.onRetry === next.onRetry

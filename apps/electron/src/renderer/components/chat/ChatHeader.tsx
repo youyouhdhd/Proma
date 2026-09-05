@@ -6,8 +6,9 @@
 
 import * as React from 'react'
 import { useSetAtom } from 'jotai'
-import { Pencil, Check, X, Pin, Columns2 } from 'lucide-react'
+import { Pencil, Check, X, Pin, Columns2, MessagesSquare } from 'lucide-react'
 import { conversationsAtom } from '@/atoms/chat-atoms'
+import { quickAskOpenAtom } from '@/atoms/quick-ask-atoms'
 import { useConversationParallelMode } from '@/hooks/useConversationSettings'
 import type { ConversationMeta } from '@proma/shared'
 import { SystemPromptSelector } from './SystemPromptSelector'
@@ -21,6 +22,7 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElement | null {
   const setConversations = useSetAtom(conversationsAtom)
+  const setQuickAskOpen = useSetAtom(quickAskOpenAtom)
   const [parallelMode, setParallelMode] = useConversationParallelMode()
   const [editing, setEditing] = React.useState(false)
   const [editTitle, setEditTitle] = React.useState('')
@@ -116,6 +118,20 @@ export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElemen
       {/* 右侧按钮组 */}
       <div className="flex items-center gap-1 titlebar-no-drag ml-auto">
         <SystemPromptSelector />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setQuickAskOpen(true)}
+            >
+              <MessagesSquare className="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>临时提问（不影响会话上下文）</p></TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

@@ -139,6 +139,8 @@ import {
   type InsertSessionReferenceMentionDetail,
 } from '@/lib/session-reference-drag'
 import { buildQuotedSelectionBlock, expandAgentHistoryQuoteMentions } from '@/lib/quoted-selection'
+import { buildQuickAskPrefill } from '@/lib/quick-ask-prefill'
+import { quickAskOpenAtom, quickAskPrefillAtom } from '@/atoms/quick-ask-atoms'
 import { INSERT_AGENT_INPUT_QUOTE_EVENT, type InsertAgentInputQuoteDetail } from '@/lib/agent-input-quote'
 import { createClipboardPendingFile, createClipboardTextDraft, makeUniqueAttachmentName } from '@/lib/clipboard-text-attachment'
 import { copyTextToClipboard } from '@/lib/clipboard'
@@ -2614,6 +2616,14 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
     }
   }, [sessionId, setAgentSessions, setSidePanelOpen, setSidePanelTabMap, setSideTemporaryAgentMap])
 
+  /** 临时提问：把 assistant 回复带入浮窗解释（不影响当前会话上下文） */
+  const handleQuickAsk = React.useCallback((content: string): void => {
+    const prefill = buildQuickAskPrefill(content)
+    if (!prefill) return
+    store.set(quickAskPrefillAtom, prefill)
+    store.set(quickAskOpenAtom, true)
+  }, [store])
+
   /** 快照回退：同一会话内回退到指定消息点，恢复文件 + 截断对话 */
   const [rewindTargetUuid, setRewindTargetUuid] = React.useState<string | null>(null)
 
@@ -3064,6 +3074,7 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
           onRestoreProjectRoot={handleOpenRestoreProjectRootDialog}
           onFork={embedded || isLegacyTranscript ? undefined : handleFork}
           onRewind={isLegacyTranscript ? undefined : handleRewindRequest}
+          onQuickAsk={isLegacyTranscript ? undefined : handleQuickAsk}
           onCreateTodo={handleOpenReplyTodoDialog}
           onCompact={handleCompact}
           onAddHistoryQuote={handleAddHistoryQuote}

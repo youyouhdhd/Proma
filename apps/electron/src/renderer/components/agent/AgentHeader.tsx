@@ -6,9 +6,10 @@
 
 import * as React from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { Check, ChevronDown, PanelRight, Pencil, Split, X } from 'lucide-react'
+import { Check, ChevronDown, MessagesSquare, PanelRight, Pencil, Split, X } from 'lucide-react'
 import { agentSessionsAtom, agentSideTemporaryAgentMapAtom, agentDiffPanelTabAtom, currentSessionSidePanelOpenAtom, getExplorationSidePanelTab } from '@/atoms/agent-atoms'
 import { tabsAtom, updateTabTitle } from '@/atoms/tab-atoms'
+import { quickAskOpenAtom } from '@/atoms/quick-ask-atoms'
 import { replaceAgentSessionInFreshnessOrder } from '@/lib/agent-session-list'
 import { cn } from '@/lib/utils'
 import {
@@ -31,6 +32,7 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
   const setSideTemporaryAgentMap = useSetAtom(agentSideTemporaryAgentMapAtom)
   const setSidePanelTabMap = useSetAtom(agentDiffPanelTabAtom)
   const [isRightPanelOpen, setRightPanelOpen] = useAtom(currentSessionSidePanelOpenAtom)
+  const setQuickAskOpen = useSetAtom(quickAskOpenAtom)
   const [editing, setEditing] = React.useState(false)
   const [editTitle, setEditTitle] = React.useState('')
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -177,16 +179,27 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {!isRightPanelOpen && (
+      <div className="ml-auto flex items-center gap-0.5 titlebar-no-drag">
         <button
           type="button"
-          onClick={() => setRightPanelOpen(true)}
-          className="titlebar-no-drag ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-          aria-label="展开右侧工作区"
+          onClick={() => setQuickAskOpen(true)}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
+          aria-label="临时提问（不影响会话上下文）"
+          title="临时提问（不影响会话上下文）"
         >
-          <PanelRight className="size-4" />
+          <MessagesSquare className="size-4" />
         </button>
-      )}
+        {!isRightPanelOpen && (
+          <button
+            type="button"
+            onClick={() => setRightPanelOpen(true)}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
+            aria-label="展开右侧工作区"
+          >
+            <PanelRight className="size-4" />
+          </button>
+        )}
+      </div>
     </div>
   )
 }

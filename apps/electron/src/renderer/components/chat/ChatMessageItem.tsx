@@ -11,7 +11,7 @@
 
 import * as React from 'react'
 import { useAtomValue } from 'jotai'
-import { AlertCircle, Pencil, Quote, RotateCcw, Trash2 } from 'lucide-react'
+import { AlertCircle, MessagesSquare, Pencil, Quote, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Message,
   MessageHeader,
@@ -105,6 +105,8 @@ interface ChatMessageItemProps {
   onResendMessage?: (message: ChatMessage) => Promise<void>
   /** 开始原地编辑用户消息 */
   onStartInlineEdit?: (message: ChatMessage) => void
+  /** 临时提问：把 assistant 回复带入浮窗解释 */
+  onQuickAsk?: (content: string) => void
   /** 原地编辑发送 */
   onSubmitInlineEdit?: (message: ChatMessage, payload: InlineEditSubmitPayload) => Promise<void>
   /** 取消原地编辑 */
@@ -125,6 +127,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
   onDeleteMessage,
   onResendMessage,
   onStartInlineEdit,
+  onQuickAsk,
   onSubmitInlineEdit,
   onCancelInlineEdit,
   isInlineEditing = false,
@@ -272,6 +275,14 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
             <CopyButton content={message.role === 'user' ? parsedUserContent.text : message.content} />
             {message.role === 'assistant' && conversationId && (
               <MigrateToAgentButton conversationId={conversationId} />
+            )}
+            {message.role === 'assistant' && onQuickAsk && message.content && (
+              <MessageAction
+                tooltip="临时提问（不影响会话上下文）"
+                onClick={() => onQuickAsk(message.content)}
+              >
+                <MessagesSquare className="size-3.5" />
+              </MessageAction>
             )}
             {message.role === 'user' && onResendMessage && (
               <MessageAction

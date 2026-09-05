@@ -21,6 +21,9 @@ export * from './proxy'
 // Chat 相关类型
 export * from './chat'
 
+// QuickAsk 临时提问浮窗
+export * from './quick-ask'
+
 // Agent 相关类型
 export * from './agent'
 export * from './browser'

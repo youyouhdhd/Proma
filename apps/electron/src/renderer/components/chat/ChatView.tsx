@@ -51,6 +51,8 @@ import { draftSessionIdsAtom } from '@/atoms/draft-session-atoms'
 import { cn } from '@/lib/utils'
 import { buildQuotedSelectionBlock } from '@/lib/quoted-selection'
 import { resolveConversationRequestReasoningLevel } from '@/lib/channel-model-reasoning'
+import { buildQuickAskPrefill } from '@/lib/quick-ask-prefill'
+import { quickAskOpenAtom, quickAskPrefillAtom } from '@/atoms/quick-ask-atoms'
 import {
   clearStopGenerationTarget,
   getStopGenerationTarget,
@@ -131,6 +133,8 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
   const promptSidebarOpen = useAtomValue(promptSidebarOpenAtom)
   const activeToolIds = useAtomValue(activeToolIdsAtom)
   const setPendingRecommendation = useSetAtom(pendingAgentRecommendationAtom)
+  const setQuickAskOpen = useSetAtom(quickAskOpenAtom)
+  const setQuickAskPrefill = useSetAtom(quickAskPrefillAtom)
   const [chatPendingMessage, setChatPendingMessage] = React.useState<ChatPendingMessage | null>(null)
 
   // 从全局 atom 读取快速任务待发送消息
@@ -628,6 +632,14 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
       .catch(console.error)
   }, [conversationId, messages, contextDividers])
 
+  /** 临时提问：把 assistant 回复带入浮窗解释（不影响当前会话） */
+  const handleQuickAsk = React.useCallback((content: string): void => {
+    const prefill = buildQuickAskPrefill(content)
+    if (!prefill) return
+    setQuickAskPrefill(prefill)
+    setQuickAskOpen(true)
+  }, [setQuickAskPrefill, setQuickAskOpen])
+
   /** 删除分隔线 */
   const handleDeleteDivider = React.useCallback((messageId: string): void => {
     const newDividers = contextDividers.filter((id) => id !== messageId)
@@ -710,6 +722,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
             onDeleteMessage={handleDeleteMessage}
             onResendMessage={handleResendMessage}
             onStartInlineEdit={handleStartInlineEdit}
+            onQuickAsk={handleQuickAsk}
             onSubmitInlineEdit={handleSubmitInlineEdit}
             onCancelInlineEdit={handleCancelInlineEdit}
             inlineEditingMessageId={inlineEditingMessageId}

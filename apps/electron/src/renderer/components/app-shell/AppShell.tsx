@@ -11,6 +11,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidePanel } from './RightSidePanel'
 import { MainArea } from '@/components/tabs/MainArea'
+import { QuickAskPanel } from '@/components/quick-ask/QuickAskPanel'
 import { appModeAtom } from '@/atoms/app-mode'
 import { agentDiffPanelTabAtom, agentSessionComponentOpenMapAtom, agentSessionsAtom, agentSidePanelLayoutAtomFamily, agentSidePanelLayoutMapAtom, agentSidePanelSplitMapAtom, currentAgentSessionIdAtom, currentSessionSidePanelOpenAtom, isWorkspaceComponentTab, pruneAgentSidePanelLayouts, fileBrowserExpandedPathsAtom, fileBrowserScrollTopMapAtom, pruneFileBrowserStateMap } from '@/atoms/agent-atoms'
 import { leftSidebarWidthAtom } from '@/atoms/sidebar-atoms'
@@ -402,6 +403,9 @@ export function AppShell(): React.ReactElement {
             <SettingsPanel onClose={() => setSettingsOpen(false)} />
           </div>
         )}
+
+        {/* 临时提问浮窗：悬浮于所有视图之上，独立于会话上下文 */}
+        <QuickAskPanel />
 
       </div>
     </>

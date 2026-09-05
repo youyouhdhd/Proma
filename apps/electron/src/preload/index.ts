@@ -6,7 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, AGENT_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, TERMINAL_IPC_CHANNELS } from '@proma/shared'
+import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, QUICK_ASK_IPC_CHANNELS, AGENT_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, TERMINAL_IPC_CHANNELS } from '@proma/shared'
 import { USER_PROFILE_IPC_CHANNELS, SETTINGS_IPC_CHANNELS, SCRATCH_PAD_IPC_CHANNELS, APP_ICON_IPC_CHANNELS, DOCK_BADGE_IPC_CHANNELS, STORAGE_IPC_CHANNELS } from '../types'
 import type {
   RuntimeStatus,
@@ -25,6 +25,7 @@ import type {
   ConversationMeta,
   ChatMessage,
   ChatSendInput,
+  QuickAskSendInput,
   GenerateTitleInput,
   StreamChunkEvent,
   StreamReasoningEvent,
@@ -403,6 +404,23 @@ export interface ElectronAPI {
   /** 中止生成 */
   stopGeneration: (conversationId: string) => Promise<void>
 
+  // ===== QuickAsk 临时提问浮窗（纯内存会话） =====
+
+  /** 创建临时会话 */
+  createQuickAskSession: () => Promise<{ conversationId: string }>
+
+  /** 发送临时提问（触发流式响应） */
+  sendQuickAskMessage: (input: QuickAskSendInput) => Promise<boolean>
+
+  /** 中止临时提问生成 */
+  stopQuickAsk: (conversationId: string) => Promise<void>
+
+  /** 清空临时会话消息 */
+  clearQuickAsk: (conversationId: string) => Promise<void>
+
+  /** 销毁临时会话（关闭浮窗时调用） */
+  destroyQuickAsk: (conversationId: string) => Promise<void>
+
   /** 删除指定消息 */
   deleteMessage: (conversationId: string, messageId: string) => Promise<ChatMessage[]>
 
@@ -568,6 +586,20 @@ export interface ElectronAPI {
 
   /** 订阅流式工具活动事件 */
   onStreamToolActivity: (callback: (event: StreamToolActivityEvent) => void) => () => void
+
+  // ===== QuickAsk 临时提问流式事件订阅 =====
+
+  /** 订阅临时提问内容片段事件 */
+  onQuickAskStreamChunk: (callback: (event: StreamChunkEvent) => void) => () => void
+
+  /** 订阅临时提问推理片段事件 */
+  onQuickAskStreamReasoning: (callback: (event: StreamReasoningEvent) => void) => () => void
+
+  /** 订阅临时提问流式完成事件 */
+  onQuickAskStreamComplete: (callback: (event: StreamCompleteEvent) => void) => () => void
+
+  /** 订阅临时提问流式错误事件 */
+  onQuickAskStreamError: (callback: (event: StreamErrorEvent) => void) => () => void
 
   // ===== Agent 会话管理相关 =====
 
@@ -1657,6 +1689,27 @@ const electronAPI: ElectronAPI = {
     return ipcRenderer.invoke(CHAT_IPC_CHANNELS.STOP_GENERATION, conversationId)
   },
 
+  // QuickAsk 临时提问（纯内存会话）
+  createQuickAskSession: () => {
+    return ipcRenderer.invoke(QUICK_ASK_IPC_CHANNELS.CREATE_SESSION)
+  },
+
+  sendQuickAskMessage: (input: QuickAskSendInput) => {
+    return ipcRenderer.invoke(QUICK_ASK_IPC_CHANNELS.SEND_MESSAGE, input)
+  },
+
+  stopQuickAsk: (conversationId: string) => {
+    return ipcRenderer.invoke(QUICK_ASK_IPC_CHANNELS.STOP, conversationId)
+  },
+
+  clearQuickAsk: (conversationId: string) => {
+    return ipcRenderer.invoke(QUICK_ASK_IPC_CHANNELS.CLEAR, conversationId)
+  },
+
+  destroyQuickAsk: (conversationId: string) => {
+    return ipcRenderer.invoke(QUICK_ASK_IPC_CHANNELS.DESTROY, conversationId)
+  },
+
   deleteMessage: (conversationId: string, messageId: string) => {
     return ipcRenderer.invoke(CHAT_IPC_CHANNELS.DELETE_MESSAGE, conversationId, messageId)
   },
@@ -1868,6 +1921,31 @@ const electronAPI: ElectronAPI = {
     const listener = (_: unknown, event: StreamToolActivityEvent): void => callback(event)
     ipcRenderer.on(CHAT_IPC_CHANNELS.STREAM_TOOL_ACTIVITY, listener)
     return () => { ipcRenderer.removeListener(CHAT_IPC_CHANNELS.STREAM_TOOL_ACTIVITY, listener) }
+  },
+
+  // QuickAsk 临时提问流式事件订阅
+  onQuickAskStreamChunk: (callback: (event: StreamChunkEvent) => void) => {
+    const listener = (_: unknown, event: StreamChunkEvent): void => callback(event)
+    ipcRenderer.on(QUICK_ASK_IPC_CHANNELS.STREAM_CHUNK, listener)
+    return () => { ipcRenderer.removeListener(QUICK_ASK_IPC_CHANNELS.STREAM_CHUNK, listener) }
+  },
+
+  onQuickAskStreamReasoning: (callback: (event: StreamReasoningEvent) => void) => {
+    const listener = (_: unknown, event: StreamReasoningEvent): void => callback(event)
+    ipcRenderer.on(QUICK_ASK_IPC_CHANNELS.STREAM_REASONING, listener)
+    return () => { ipcRenderer.removeListener(QUICK_ASK_IPC_CHANNELS.STREAM_REASONING, listener) }
+  },
+
+  onQuickAskStreamComplete: (callback: (event: StreamCompleteEvent) => void) => {
+    const listener = (_: unknown, event: StreamCompleteEvent): void => callback(event)
+    ipcRenderer.on(QUICK_ASK_IPC_CHANNELS.STREAM_COMPLETE, listener)
+    return () => { ipcRenderer.removeListener(QUICK_ASK_IPC_CHANNELS.STREAM_COMPLETE, listener) }
+  },
+
+  onQuickAskStreamError: (callback: (event: StreamErrorEvent) => void) => {
+    const listener = (_: unknown, event: StreamErrorEvent): void => callback(event)
+    ipcRenderer.on(QUICK_ASK_IPC_CHANNELS.STREAM_ERROR, listener)
+    return () => { ipcRenderer.removeListener(QUICK_ASK_IPC_CHANNELS.STREAM_ERROR, listener) }
   },
 
   // Agent 会话管理
