@@ -208,5 +208,5 @@ deb:
 # ============================================
 publish:
   provider: github
-  owner: proma-ai
-  repo: Proma
+  # 不硬编码 owner/repo：electron-builder 会从检出的仓库 origin 自动解析，
+  # 上游 CI 发布到 proma-ai/Proma，Fork CI 发布到 Fork 仓库，互不干扰。
